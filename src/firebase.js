@@ -1,7 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: "AIzaSyAJuJ8DKdnn75WgvyXnKV3PJwp4BbwMvCc",
@@ -13,12 +12,12 @@ const firebaseConfig = {
     measurementId: "G-8NTM6KGK8J"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
 
+// Initialize services
+export const auth = getAuth(firebaseApp);
+export const db = getFirestore(firebaseApp);
 
-// Ensure user session persists
-setPersistence(auth, browserLocalPersistence);
-
-export { db, auth };
+// Initialize persistence in a separate file or after auth usage
+// to avoid circular dependencies

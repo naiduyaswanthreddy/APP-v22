@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../../firebase";
-import { collection, getDocs } from "firebase/firestore";
-import { FaRegBookmark, FaBookmark,FaBook  } from "react-icons/fa";
+import { db, auth } from "../../firebase";
+import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
+import { FaRegBookmark, FaBookmark, FaBook } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify"; // Import toast
+import "react-toastify/dist/ReactToastify.css"; // Import CSS for toast
 
 const categories = [
   "All",
@@ -24,7 +26,7 @@ const Resources = () => {
 
   useEffect(() => {
     fetchResources();
-    loadBookmarks();
+    fetchBookmarks(); // Fetch bookmarks when component mounts
   }, []);
 
   const fetchResources = async () => {
@@ -33,7 +35,7 @@ const Resources = () => {
       id: doc.id,
       ...doc.data(),
     }));
-  
+
     // ✅ Handle missing `createdAt` by sorting manually
     fetchedResources = fetchedResources.sort((a, b) => 
       (b.createdAt?.toDate?.() || new Date(0)) - (a.createdAt?.toDate?.() || new Date(0))
@@ -45,9 +47,40 @@ const Resources = () => {
   };
   
 
-  const loadBookmarks = () => {
-    const savedBookmarks = JSON.parse(localStorage.getItem("bookmarked")) || [];
-    setBookmarked(savedBookmarks);
+  const fetchBookmarks = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const bookmarksRef = collection(db, "bookmarks");
+      const q = query(bookmarksRef, where("student_id", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+
+      const bookmarksData = querySnapshot.docs.map((doc) => doc.data().resource_id);
+      setBookmarked(bookmarksData);
+    } catch (error) {
+      console.error("Error fetching bookmarks:", error);
+      toast.error("Failed to fetch bookmarks");
+    }
+  };
+
+  const toggleBookmark = async (resourceId) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const bookmarkRef = doc(db, "bookmarks", `${user.uid}_${resourceId}`);
+      if (bookmarked.includes(resourceId)) {
+        await setDoc(bookmarkRef, { student_id: user.uid, resource_id: resourceId });
+        setBookmarked(bookmarked.filter((id) => id !== resourceId));
+      } else {
+        await setDoc(bookmarkRef, { student_id: user.uid, resource_id: resourceId });
+        setBookmarked([...bookmarked, resourceId]);
+      }
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+      toast.error("Failed to update bookmark");
+    }
   };
 
   const handleSearch = (e) => {
@@ -60,8 +93,6 @@ const Resources = () => {
     setSelectedCategory(category);
     filterResources(category, searchQuery);
   };
-
-
 
   const filterResources = (category, query) => {
     let filtered = resources.filter((resource) =>
@@ -82,24 +113,10 @@ const Resources = () => {
   
     setFilteredResources(filtered);
   };
-  
-
-
-  const toggleBookmark = (resourceId) => {
-    let updatedBookmarks;
-
-    if (bookmarked.includes(resourceId)) {
-      updatedBookmarks = bookmarked.filter((id) => id !== resourceId);
-    } else {
-      updatedBookmarks = [...bookmarked, resourceId];
-    }
-
-    setBookmarked(updatedBookmarks);
-    localStorage.setItem("bookmarked", JSON.stringify(updatedBookmarks));
-  };
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      <ToastContainer /> {/* Add ToastContainer to render toasts */}
       {/* Header with Search and Bookmarked Button */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Learning Resources</h2>
@@ -111,37 +128,35 @@ const Resources = () => {
             onChange={handleSearch}
             className="border p-2 rounded-md shadow-sm w-80 outline-none"
           />
-<button
-  onClick={() => setShowBookmarked(!showBookmarked)}
-  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition flex items-center gap-2"
->
-  {showBookmarked ? <FaBook className="text-lg" /> : <FaRegBookmark className="text-lg" />}
-</button>
-
+          <button
+            onClick={() => setShowBookmarked(!showBookmarked)}
+            className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition flex items-center gap-2"
+          >
+            {showBookmarked ? <FaBook className="text-lg" /> : <FaRegBookmark className="text-lg" />}
+          </button>
         </div>
       </div>
 
-{/* Latest Resources */}
-<div>
-  <h3 className="text-xl font-semibold mb-4">Latest Uploads</h3>
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-    {latestResources.map((resource) => (
-      <div
-        key={resource.id}
-        className="p-4 bg-white rounded-2xl shadow-md flex flex-col items-center justify-between"
-      >
-        <h4 className="font-semibold text-center">{resource.title}</h4>
-        <p className="text-gray-600 text-sm">{Array.isArray(resource.category) ? resource.category.join(", ") : resource.category}</p>
-        <a href={resource.link} target="_blank" rel="noopener noreferrer">
-          <button className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
-            View
-          </button>
-        </a>
+      {/* Latest Resources */}
+      <div>
+        <h3 className="text-xl font-semibold mb-4">Latest Uploads</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {latestResources.map((resource) => (
+            <div
+              key={resource.id}
+              className="p-4 bg-white rounded-2xl shadow-md flex flex-col items-center justify-between"
+            >
+              <h4 className="font-semibold text-center">{resource.title}</h4>
+              <p className="text-gray-600 text-sm">{Array.isArray(resource.category) ? resource.category.join(", ") : resource.category}</p>
+              <a href={resource.link} target="_blank" rel="noopener noreferrer">
+                <button className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
+                  View
+                </button>
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-  </div>
-</div>
-
 
       {/* Categories */}
       <div className="flex space-x-3 overflow-x-auto">
@@ -181,7 +196,6 @@ const Resources = () => {
                   <p className="text-gray-500 text-sm">
                    Type: {resource.type} | Categories: {Array.isArray(resource.category) ? resource.category.join(", ") : resource.category}
                   </p>
-
                 </div>
                 <div className="flex items-center gap-4">
                   <a href={resource.link} target="_blank" rel="noopener noreferrer">

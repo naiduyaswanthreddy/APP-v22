@@ -1,12 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+// First React and Router imports
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+
+// Add new Analytics import
+import AdminAnalytics from "./components/admin/Analytics";
+
+// Then Firebase imports
+import { auth } from "./firebase";
+
+// Then page components
 import Login from "./Login";
 import Signup from "./Signup";
 import Student from "./Student";
 import Admin from "./Admin";
-import { auth } from "./firebase";
 
-// Student Components
+// Then feature components
 import StudentResources from "./components/student/Resources";
 import StudentJobPost from "./components/student/JobPost";
 import StudentCoding from "./components/student/Coding";
@@ -20,16 +28,21 @@ import AdminJobPost from "./components/admin/JobPost";
 import AdminCoding from "./components/admin/Coding";
 import AdminProfile from "./components/admin/Profile";
 import AdminGallery from "./components/admin/Gallery";
-import AdminApplications from "./components/admin/Applications";
+import ManageApplications from './components/admin/Job_Applications/ManageApplications';
+import JobApplications from './components/admin/Job_Applications/JobApplications';
+import Students from "./components/admin/Students";
 
-const AuthHandler = () => {
+// Add import for Notifications
+import AdminNotifications from "./components/admin/Notifications";
+
+// Add import for StudentNotifications
+import StudentNotifications from "./components/student/Notifications";
+
+function AuthHandler() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-
-
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -89,50 +102,34 @@ const AuthHandler = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       
-      <Route 
-        path="/login" 
-        element={
-          user && role ? <Navigate to={`/${role}`} replace /> : <Login />
-        } 
-      />
-      
-      <Route 
-        path="/signup" 
-        element={
-          user && role ? <Navigate to={`/${role}`} replace /> : <Signup />
-        } 
-      />
-
-      
-
-
-      <Route
-        path="/admin/*"
-        element={
-          <ProtectedRoute allowedRole="admin">
-            <Admin />
-          </ProtectedRoute>
-        }
-      >
+      {/* Admin routes with protection */}
+      <Route path="/admin" element={
+        <ProtectedRoute allowedRole="admin">
+          <Admin />
+        </ProtectedRoute>
+      }>
         <Route index element={<AdminProfile />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="resources" element={<AdminResources />} />
         <Route path="jobpost" element={<AdminJobPost />} />
-        <Route path="applications" element={<AdminApplications />} />
+        <Route path="manage-applications" element={<ManageApplications />} />
+        <Route path="job-applications/:jobId" element={<JobApplications />} />
         <Route path="coding" element={<AdminCoding />} />
+        <Route path="students" element={<Students />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="gallery" element={<AdminGallery />} />
+        <Route path="notifications" element={<AdminNotifications />} />
       </Route>
 
-      <Route
-        path="/student/*"
-        element={
-          <ProtectedRoute allowedRole="student">
-            <Student />
-          </ProtectedRoute>
-        }
-      >
+      {/* Student routes with protection */}
+      <Route path="/student" element={
+        <ProtectedRoute allowedRole="student">
+          <Student />
+        </ProtectedRoute>
+      }>
         <Route index element={<StudentProfile />} />
         <Route path="resources" element={<StudentResources />} />
         <Route path="jobpost" element={<StudentJobPost />} />
@@ -140,9 +137,11 @@ const AuthHandler = () => {
         <Route path="coding" element={<StudentCoding />} />
         <Route path="profile" element={<StudentProfile />} />
         <Route path="gallery" element={<StudentGallery />} />
+        // Inside the Routes component, add the student notifications route
+        <Route path="notifications" element={<StudentNotifications />} />
       </Route>
     </Routes>
   );
-};
+}
 
 export default AuthHandler;

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from ".//firebase";
+import { auth, db } from ".//firebase";
+import { doc, setDoc } from "firebase/firestore";
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const Signup = () => {
     rollNumber: "",
     batch: "",
     program: "BTech",
+    department: "",
     passoutYear: "",
     mobile: "",
     github: "",
@@ -46,15 +48,21 @@ const Signup = () => {
 
       await updateProfile(user, { displayName: formData.name });
 
-      // Store additional data
-      localStorage.setItem("rollNumber", formData.rollNumber);
-      localStorage.setItem("batch", formData.batch);
-      localStorage.setItem("program", formData.program);
-      localStorage.setItem("passoutYear", formData.passoutYear);
-      localStorage.setItem("mobile", formData.mobile);
-      localStorage.setItem("github", formData.github);
-      localStorage.setItem("leetcode", formData.leetcode);
-      localStorage.setItem("hackerrank", formData.hackerrank);
+      // Store student data in Firestore
+      await setDoc(doc(db, 'students', user.uid), {
+        name: formData.name,
+        email: formData.email,
+        rollNumber: formData.rollNumber,
+        batch: formData.batch,
+        program: formData.program,
+        department: formData.department,
+        passoutYear: formData.passoutYear,
+        mobile: formData.mobile,
+        github: formData.github,
+        leetcode: formData.leetcode,
+        hackerrank: formData.hackerrank,
+        createdAt: new Date()
+      });
 
       navigate("/student");
     } catch (error) {
@@ -78,8 +86,23 @@ const Signup = () => {
           <input name="email" type="email" placeholder="Email Address" onChange={handleChange} required />
           <input name="mobile" type="text" placeholder="Mobile Number" onChange={handleChange} required />
           <input name="rollNumber" type="text" placeholder="Roll Number" onChange={handleChange} required />
-          <input name="batch" type="text" placeholder="Batch" onChange={handleChange} required />
+          {/* {{ edit_1 }} */}
+          {/* Changed Batch input to Degree dropdown */}
+          {/* <input name="batch" type="text" placeholder="Batch" onChange={handleChange} required /> */}
+          <select name="program" onChange={handleChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
+            <option value="">Select Degree</option>
+            <option value="BTech">BTech</option>
+            <option value="MBA">MBA</option>
+          </select>
+          {/* {{ end_edit_1 }} */}
           <input name="passoutYear" type="text" placeholder="Passout Year" onChange={handleChange} required />
+          <select name="department" onChange={handleChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
+            <option value="">Select Department</option>
+            <option value="CSE">CSE</option>
+            <option value="AIE">AIE</option>
+            <option value="ECE">ECE</option>
+            <option value="CCE">CCE</option>
+          </select>
           <input name="github" type="text" placeholder="GitHub Profile Link" onChange={handleChange} />
           <input name="leetcode" type="text" placeholder="LeetCode Profile Link" onChange={handleChange} />
           <input name="hackerrank" type="text" placeholder="HackerRank Profile Link" onChange={handleChange} />
