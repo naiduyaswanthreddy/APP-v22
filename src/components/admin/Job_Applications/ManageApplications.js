@@ -221,12 +221,12 @@ const ManageApplications = () => {
                         >
                           👁 View
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => generateShareLink(job.id, job.company)}
                           className="px-3 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100"
                         >
                           🔗 Share
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => handleDeleteJob(job.id)}
                           className="px-3 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"

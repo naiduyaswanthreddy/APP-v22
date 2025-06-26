@@ -9,7 +9,8 @@ import {
   Code, 
   User, 
   Image, 
-  Bell 
+  Bell,
+  Building
 } from 'lucide-react';
 
 const AdminSidebar = () => {
@@ -21,6 +22,7 @@ const AdminSidebar = () => {
     { path: '/admin/jobpost', Icon: Briefcase, label: 'Job Posting' },
     { path: '/admin/manage-applications', Icon: FileText, label: 'Manage Applications' },
     { path: '/admin/students', Icon: Users, label: 'Students' },
+    { path: '/admin/companies', Icon: Building, label: 'Companies' },
     { path: '/admin/coding', Icon: Code, label: 'Coding' },
     { path: '/admin/profile', Icon: User, label: 'Profile' },
     { path: '/admin/gallery', Icon: Image, label: 'Gallery' },

@@ -11,6 +11,13 @@ import Profile from './components/admin/Profile';
 import Gallery from './components/admin/Gallery';
 import JobApplications from './components/admin/JobApplications';
 
+// Import new company-related components
+import Companies from './components/admin/Companies';
+import CompanyCreate from './components/admin/CompanyCreate';
+import CompanyMonitoring from './components/admin/CompanyMonitoring';
+import CompanyLogin from './components/company/CompanyLogin';
+import CompanyDashboard from './components/company/CompanyDashboard';
+
 function MainRoutes() {
   return (
     <Routes>
@@ -25,7 +32,16 @@ function MainRoutes() {
         <Route path="profile" element={<Profile />} />
         <Route path="gallery" element={<Gallery />} />
         <Route path="job-applications/:jobId" element={<JobApplications />} />
+        
+        {/* Add new company routes */}
+        <Route path="companies" element={<Companies />} />
+        <Route path="companies/create" element={<CompanyCreate />} />
+        <Route path="companies/monitor" element={<CompanyMonitoring />} />
       </Route>
+      
+      {/* Company routes */}
+      <Route path="/company-login" element={<CompanyLogin />} />
+      <Route path="/company/dashboard" element={<CompanyDashboard />} />
     </Routes>
   );
 }

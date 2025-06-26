@@ -1,70 +1,125 @@
-# Getting Started with Create React App
+[Documentation](https://amritacampusamaravati-my.sharepoint.com/my?id=%2Fpersonal%2Fav%5Fen%5Fu4cse22129%5Fav%5Fstudents%5Famrita%5Fedu%2FDocuments%2FPlacement%5FPortal&ga=1&noAuthRedirect=1)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
 
-In the project directory, you can run:
 
-### `npm start`
+## Overview
+A comprehensive campus placement management system built with React.js that facilitates the interaction between students, administrators, and companies during the placement process.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Tech Stack
+- Frontend Framework : React.js
+- UI Components :
+  - Material-UI (@mui/material)
+  - Tailwind CSS (for styling)
+  - Lucide React (for icons)
+  - React Icons
+- Authentication & Database : Firebase
+  - Firebase Authentication
+  - Firestore Database
+- Routing : React Router DOM v7
+- Data Visualization :
+  - Chart.js
+  - React-Chartjs-2
+  - Recharts
+- PDF Generation : @react-pdf/renderer
+- Date Handling : date-fns
+- Notifications : React-Toastify
+- Excel Support : xlsx
+## Key Features
+### Student Features
+1. Profile Management
+   
+   - Personal information management
+   - GitHub activity calendar integration
+   - Skills and education details
+2. Job Applications
+   
+   - View and apply for job postings
+   - Track application status (pending, under_review, shortlisted, etc.)
+   - Receive notifications for application updates
+3. Coding Progress
+   
+   - Track coding platform statistics (LeetCode, HackerRank)
+   - Progress visualization
+4. Resources
+   
+   - Access learning materials by categories:
+     - AI/ML
+     - Web Development
+     - UI/UX
+     - Data Analysis
+     - Cloud Computing
+     - Programming Languages
+   - Bookmark favorite resources
+### Admin Features
+1. Dashboard
+   
+   - Overview of placement statistics
+   - Analytics and reporting
+2. Student Management
+   
+   - View and manage student profiles
+   - Generate student profile PDFs
+   - Track student performance and activities
+3. Job Management
+   
+   - Post new job opportunities
+   - Manage applications
+   - Track application statuses
+4. Resource Management
+   
+   - Upload and manage learning resources
+   - Categorize materials
+### Company Features
+- Dedicated company view portal
+- Access to shared student profiles
+- Application management interface
+## Authentication and Security
+- Role-based access control (Student/Admin/Company)
+- Secure authentication using Firebase
+- Protected routes and authorized access
+## Additional Features
+1. Notifications System
+   
+   - Real-time updates for:
+     - Job postings
+     - Application status changes
+     - Deadlines
+     - Announcements
+2. Data Export
+   
+   - PDF generation for student profiles
+   - Excel support for data export
+3. Analytics
+   
+   - Visual representation of placement statistics
+   - Student performance tracking
+   - Application success rates
+## Getting Started
+1. Clone the repository
+2. Install dependencies:
+```
+npm install
+```
+3. Start the development server:
+```
+npm start
+```
+## Environment Setup
+Ensure you have the following environment variables configured:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Firebase configuration
+- Supabase configuration
+- Any additional API keys
+## Browser Support
+Optimized for:
 
-### `npm test`
+- Latest Chrome version
+- Latest Firefox version
+- Latest Safari version
+## Development Mode
+Run the app in development mode with hot-reload support using:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```
+npm start
+```

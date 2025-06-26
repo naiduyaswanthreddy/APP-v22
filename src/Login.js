@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "./firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase";
 import { User, Building2 } from "lucide-react";
 
 const Login = () => {
@@ -29,23 +31,42 @@ const Login = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
+  
     try {
-      // First, store the role
-      localStorage.setItem("userRole", selectedRole);
-      
-      // Then attempt login
+      // First attempt login without setting role
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
-      if (userCredential.user) {
-        // Double check the role is set before navigating
-        const confirmedRole = localStorage.getItem("userRole");
-        if (confirmedRole) {
-          navigate(`/${confirmedRole}`, { replace: true });
+      // Verify if the user has the selected role by checking Firestore
+      if (selectedRole === "admin") {
+        // Check if user exists in admins collection
+        const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+        
+        if (adminDoc.exists()) {
+          // User is an admin, set role and navigate
+          localStorage.setItem("userRole", "admin");
+          navigate("/admin", { replace: true });
         } else {
-          // If somehow role is missing, set it again and navigate
-          localStorage.setItem("userRole", selectedRole);
-          navigate(`/${selectedRole}`, { replace: true });
+          // User is not an admin
+          setError("You don't have admin privileges. Please select the correct role.");
+          await signOut(auth); // Sign out the user
+          localStorage.removeItem("userRole");
+          setLoading(false);
+        }
+      } else if (selectedRole === "student") {
+        // Check if user exists in students collection
+        const studentDoc = await getDoc(doc(db, 'students', user.uid));
+        
+        if (studentDoc.exists()) {
+          // User is a student, set role and navigate
+          localStorage.setItem("userRole", "student");
+          navigate("/student", { replace: true });
+        } else {
+          // User is not a student
+          setError("You don't have student access. Please select the correct role.");
+          await signOut(auth); // Sign out the user
+          localStorage.removeItem("userRole");
+          setLoading(false);
         }
       }
     } catch (error) {

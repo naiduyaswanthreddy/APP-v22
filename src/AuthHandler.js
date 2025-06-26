@@ -38,6 +38,11 @@ import AdminNotifications from "./components/admin/Notifications";
 // Add import for StudentNotifications
 import StudentNotifications from "./components/student/Notifications";
 
+// First add the import for Companies component
+import Companies from "./components/admin/Companies";
+import CompanyCreate from "./components/admin/CompanyCreate";
+import CompanyMonitoring from "./components/admin/CompanyMonitoring";
+
 function AuthHandler() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -122,6 +127,11 @@ function AuthHandler() {
         <Route path="profile" element={<AdminProfile />} />
         <Route path="gallery" element={<AdminGallery />} />
         <Route path="notifications" element={<AdminNotifications />} />
+        
+        {/* Add the missing company routes */}
+        <Route path="companies" element={<Companies />} />
+        <Route path="companies/create" element={<CompanyCreate />} />
+        <Route path="companies/monitor" element={<CompanyMonitoring />} />
       </Route>
 
       {/* Student routes with protection */}

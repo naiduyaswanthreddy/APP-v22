@@ -13,7 +13,8 @@ import {
   Image,
   Users,
   BarChart,
-  Bell,  // Add Bell icon for notifications
+  Bell,
+  Building,  // Add Building icon for Companies
   LogOut 
 } from 'lucide-react';
 
@@ -42,6 +43,7 @@ const Admin = () => {
     { name: "Job Posting", path: "/admin/jobpost", icon: <Briefcase size={20} /> },
     { name: "Manage Applications", path: "/admin/manage-applications", icon: <FileText size={20} /> },
     { name: "Students", path: "/admin/students", icon: <Users size={20} /> },
+    { name: "Companies", path: "/admin/companies", icon: <Building size={20} /> }, // Add Companies menu item
     { name: "Coding", path: "/admin/coding", icon: <Code size={20} /> },
     { name: "Profile", path: "/admin/profile", icon: <User size={20} /> },
     { name: "Gallery", path: "/admin/gallery", icon: <Image size={20} /> },
@@ -127,3 +129,4 @@ const Admin = () => {
 };
 
 export default Admin;
+
