@@ -300,7 +300,7 @@ const JobApplications = () => {
   };
   
   // Function to update application status with validation
-  const handleStatusUpdate = async (applicationId, newStatus) => {
+    const handleStatusUpdate = async (applicationId, newStatus) => {
     try {
       // Validate the new status
       if (!Object.keys(statusConfig).includes(newStatus)) {
@@ -458,11 +458,11 @@ const JobApplications = () => {
   };
 
   return (
-      <div className="p-8 max-w-7xl mx-auto">
-        <ToastContainer />
+<div className="p-7 sm:px-6 lg:px-8 max-w-[1170px] mx-auto">
+<ToastContainer />
 
         {/* Back Button */}
-        <div className="flex items-center -mt-6 mb-2">
+        <div className="flex items-center -mt-6 mb-2" >
           <button onClick={() => navigate('/admin/manage-applications')} className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-4">
             ← Back to All Jobs
           </button>

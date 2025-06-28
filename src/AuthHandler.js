@@ -43,6 +43,9 @@ import Companies from "./components/admin/Companies";
 import CompanyCreate from "./components/admin/CompanyCreate";
 import CompanyMonitoring from "./components/admin/CompanyMonitoring";
 
+// Add import for Resume Maker
+import ResumeMaker from "./components/student/Resume maker/src/App";
+
 function AuthHandler() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -66,11 +69,6 @@ function AuthHandler() {
           if (!currentPath.startsWith(expectedPath)) {
             navigate(expectedPath, { replace: true });
           }
-        } else {
-          // If no role is found, redirect to login
-          setUser(null);
-          setRole(null);
-          navigate('/login', { replace: true });
         }
       } else {
         // Clear everything if no user
@@ -147,8 +145,9 @@ function AuthHandler() {
         <Route path="coding" element={<StudentCoding />} />
         <Route path="profile" element={<StudentProfile />} />
         <Route path="gallery" element={<StudentGallery />} />
-        // Inside the Routes component, add the student notifications route
         <Route path="notifications" element={<StudentNotifications />} />
+        {/* Add the resume-maker route inside the student routes */}
+        <Route path="resume-maker" element={<ResumeMaker />} />
       </Route>
     </Routes>
   );

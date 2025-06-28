@@ -4,8 +4,10 @@ import { doc, getDoc, setDoc } from "firebase/firestore"; // Import setDoc
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import GitHubCalendar from "react-github-calendar"; // Import GitHubCalendar
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const Profile = () => {
+  const navigate = useNavigate(); // Make sure useNavigate is initialized
   const [userData, setUserData] = useState({
     name: "",
     email: "",
@@ -135,6 +137,11 @@ const Profile = () => {
     } else {
       toast.error("User not authenticated. Please log in.");
     }
+  };
+
+  // Add the handleMakeResume function inside the component
+  const handleMakeResume = () => {
+    navigate("/student/resume-maker");
   };
 
   return (
@@ -334,8 +341,11 @@ const Profile = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-lg p-6 mt-6 flex justify-center items-center space-x-4">
-        <button className="px-6 py-3 bg-gray-200 text-black rounded-full hover:bg-gray-300">
-          <i className="fas fa-file-alt"></i> Create Resume
+        <button 
+          className="px-6 py-3 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+          onClick={handleMakeResume}
+        >
+          <i className="fas fa-file-alt"></i> Make Resume
         </button>
         {resumeLink ? (
           <div className="flex items-center space-x-2">
@@ -406,3 +416,5 @@ const Profile = () => {
 };
 
 export default Profile;
+
+// Remove the duplicate export and the function defined outside the component

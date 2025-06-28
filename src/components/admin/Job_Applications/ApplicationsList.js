@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { collection, getDocs, query, where, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import ApplicationsTable from './ApplicationsTable';
@@ -14,6 +14,15 @@ function ApplicationsList() {
 
   const [selectedAnswers, setSelectedAnswers] = useState(null);
   const [isAnswersModalOpen, setIsAnswersModalOpen] = useState(false);
+
+  // Create a stable reference to the db
+  const dbRef = useRef(db);
+  
+  // IMPORTANT: Initialize the ref with a dummy function to ensure it's never undefined
+  const stableSaveFeedback = useRef((id, value) => {
+    console.log("Initial dummy function called - this should not happen");
+    return false;
+  });
 
   // Status configuration for the application statuses
   const statusConfig = {
@@ -32,12 +41,12 @@ function ApplicationsList() {
         const applicationsCollection = collection(db, 'applications');
         const applicationSnapshot = await getDocs(applicationsCollection);
         const rawApplications = applicationSnapshot.docs.map(doc => ({ 
-          id: doc.id, 
+          id: doc.id, // Make sure this ID is correctly set
           feedback: doc.data().feedback || '', // Initialize feedback
           ...doc.data() 
         }));
 
-        console.log('Raw applications:', rawApplications);
+        console.log('Raw applications with IDs:', rawApplications.map(app => app.id));
         
         // Transform the fetched data to include screeningAnswers array
         const transformedApplications = rawApplications.map(app => {
@@ -92,18 +101,24 @@ function ApplicationsList() {
     setSelectedAnswers(null);
   };
 
-  // Add the new function to handle saving feedback
-  // Define handleSaveFeedback using useCallback to ensure stable reference
+  // Define handleSaveFeedback using useCallback with proper dependencies
   const handleSaveFeedback = useCallback(async (applicationId, feedbackValue) => {
     console.log("ApplicationsList: handleSaveFeedback called with", applicationId, feedbackValue);
-
+  
     if (!applicationId || typeof feedbackValue !== 'string') {
       console.error('Invalid arguments for handleSaveFeedback');
       return false;
     }
-
+  
     try {
-      const applicationRef = doc(db, 'applications', applicationId);
+      // Use the ref to ensure stable reference
+      const currentDb = dbRef.current;
+      const applicationRef = doc(currentDb, 'applications', applicationId);
+      
+      // Log more details for debugging
+      console.log(`Attempting to update application ${applicationId} with feedback: ${feedbackValue}`);
+      
+      // Perform the update
       await updateDoc(applicationRef, {
         feedback: feedbackValue
       });
@@ -120,20 +135,44 @@ function ApplicationsList() {
           app.id === applicationId ? { ...app, feedback: feedbackValue } : app
         )
       );
-
+  
       console.log(`Feedback saved successfully for application ${applicationId}`);
       return true;
-
+  
     } catch (error) {
       console.error(`Error saving feedback for application ${applicationId}:`, error);
+      // Log more details about the error
+      if (error.code) {
+        console.error(`Firebase error code: ${error.code}`);
+      }
       return false;
     }
-  }, []); // Empty dependency array to ensure stable reference
+  }, []);
+
+  // Update the ref IMMEDIATELY after defining the function
+  // This ensures the ref is updated before the first render
+  stableSaveFeedback.current = handleSaveFeedback;
+  
+  // Also update in useEffect to ensure it stays updated after renders
+  useEffect(() => {
+    console.log("Updating stableSaveFeedback ref in useEffect");
+    stableSaveFeedback.current = handleSaveFeedback;
+  }, [handleSaveFeedback]);
 
   // Add logging here before the return statement
-  console.log("ApplicationsList: handleSaveFeedback before rendering table:", handleSaveFeedback);
-  console.log("ApplicationsList: handleSaveFeedback type before rendering table:", typeof handleSaveFeedback);
+  console.log("ApplicationsList: handleSaveFeedback before rendering table:", stableSaveFeedback.current);
+  console.log("ApplicationsList: handleSaveFeedback type before rendering table:", typeof stableSaveFeedback.current);
 
+  // Create a wrapper function that we pass directly as a prop
+  // This ensures we're not passing the .current property which might be undefined
+  const saveFeedbackWrapper = async (id, value) => {
+    console.log("Wrapper function called with", id, value);
+    if (typeof stableSaveFeedback.current !== 'function') {
+      console.error("stableSaveFeedback.current is not a function in wrapper", stableSaveFeedback.current);
+      return false;
+    }
+    return await stableSaveFeedback.current(id, value);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -151,9 +190,7 @@ function ApplicationsList() {
         dropdownPosition={dropdownPosition}
         setDropdownPosition={setDropdownPosition}
         handleStatusUpdate={handleStatusUpdate}
-        // Add the handleSaveFeedback prop here
-        handleSaveFeedback={handleSaveFeedback}
-        // Add these props explicitly (if you still need the modal)
+        handleSaveFeedback={saveFeedbackWrapper} // Use the wrapper function instead of .current
         setSelectedAnswers={setSelectedAnswers}
         setIsAnswersModalOpen={setIsAnswersModalOpen}
       />

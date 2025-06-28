@@ -3,6 +3,7 @@ import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'fireb
 import { db, auth } from '../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { createStatusUpdateNotification } from '../../utils/notificationHelpers';
 
 const STATUS_COLORS = {
   'pending': 'bg-yellow-100 text-yellow-800',
@@ -77,6 +78,21 @@ const Applications = () => {
 
       console.log('Fetched applications with skill match:', applicationsData);
       setApplications(applicationsData);
+      
+      // Check for any status updates since last fetch
+      const lastFetchTime = localStorage.getItem('lastApplicationsFetchTime');
+      if (lastFetchTime) {
+        const lastFetchDate = new Date(parseInt(lastFetchTime, 10));
+        applicationsData.forEach(app => {
+          // If the status was updated after the last fetch, create a notification
+          if (app.statusUpdatedAt && app.statusUpdatedAt.toDate() > lastFetchDate) {
+            createStatusUpdateNotification(user.uid, app);
+          }
+        });
+      }
+      
+      // Update the last fetch time
+      localStorage.setItem('lastApplicationsFetchTime', Date.now().toString());
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast.error('Failed to fetch applications');
@@ -245,15 +261,31 @@ const Applications = () => {
         ))}
 
         {filteredApplications.length === 0 && !loading && (
-          <div className="text-center py-8 text-gray-500">
-            No applications found
+          <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg col-span-2">
+            <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 className="mt-4 text-xl font-medium text-gray-700">
+              No applications found
+            </h3>
+            <p className="mt-2 text-gray-500">
+              {filter !== 'all' ? 'Try changing your filter settings' : 'You haven\'t applied to any jobs yet'}
+            </p>
+            {filter !== 'all' && (
+              <button
+                onClick={() => setFilter('all')}
+                className="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                View All Applications
+              </button>
+            )}
           </div>
         )}
 
         {loading && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading applications...</p>
+          <div className="flex flex-col items-center justify-center py-12 col-span-2">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading applications...</p>
           </div>
         )}
       </div>

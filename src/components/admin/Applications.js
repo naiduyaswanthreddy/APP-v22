@@ -107,8 +107,20 @@ const Coding = () => {
 
       {loading ? (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading jobs...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading jobs...</p>
+        </div>
+      ) : sortedJobs.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-lg shadow-sm">
+          <div className="text-6xl mb-4">🔍</div>
+          <h3 className="text-xl font-medium text-gray-900 mb-2">No jobs found</h3>
+          <p className="text-gray-500 mb-6">There are currently no jobs available in the system</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Refresh Page
+          </button>
         </div>
       ) : (
         <div className="overflow-x-auto">

@@ -3,6 +3,7 @@ import { collection, getDocs, query, orderBy, addDoc, doc, getDoc, where, server
 import { db, auth } from '../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { createJobPostingNotification } from '../../utils/notificationHelpers';
 
 const JobPost = () => {
   // Keep only one set of state declarations at the top
@@ -17,6 +18,7 @@ const JobPost = () => {
   const [viewSavedJobs, setViewSavedJobs] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [screeningAnswers, setScreeningAnswers] = useState({});
+  const [loading, setLoading] = useState(true); // Add loading state
 
   useEffect(() => {
     fetchJobs();
@@ -36,10 +38,40 @@ const JobPost = () => {
         deadline: doc.data().deadline ? new Date(doc.data().deadline).toLocaleString() : 'No deadline',
         interviewDateTime: doc.data().interviewDateTime ? new Date(doc.data().interviewDateTime).toLocaleString() : 'Not scheduled'
       }));
+      
       setJobs(jobsData);
+      
+      // Check for any new jobs since last fetch
+      const lastFetchTime = localStorage.getItem('lastJobsFetchTime');
+      const user = auth.currentUser;
+      if (lastFetchTime && user) {
+        const lastFetchDate = new Date(parseInt(lastFetchTime, 10));
+        jobsData.forEach(job => {
+          // If the job was created after the last fetch, create a notification
+          if (job.created_at && new Date(job.created_at.seconds * 1000) > lastFetchDate) {
+            // Check if the job matches student's skills or criteria
+            const studentSkills = studentProfile.skills || [];
+            const jobSkills = job.eligibilityCriteria?.skills || [];
+            
+            // Simple matching algorithm - if any skill matches
+            const hasMatchingSkill = jobSkills.some(skill => 
+              studentSkills.map(s => s.toLowerCase()).includes(skill.toLowerCase())
+            );
+            
+            if (hasMatchingSkill) {
+              createJobPostingNotification(user.uid, job);
+            }
+          }
+        });
+      }
+      
+      // Update the last fetch time
+      localStorage.setItem('lastJobsFetchTime', Date.now().toString());
     } catch (error) {
       console.error('Error fetching jobs:', error);
       toast.error('Failed to fetch jobs');
+    } finally {
+      setLoading(false); // Set loading to false when done
     }
   };
 
@@ -314,14 +346,6 @@ const JobPost = () => {
     setSelectedJob(job);
   };
 
-  // Remove this duplicate declaration
-  // const handleAnswerChange = (questionIndex, value) => {
-  //   setScreeningAnswers(prev => ({
-  //     ...prev,
-  //     [questionIndex]: value
-  //   }));
-  // };
-
   // Create a ScreeningQuestions component
   const ScreeningQuestions = () => {
     if (!selectedJob?.screeningQuestions?.length) return null;
@@ -415,99 +439,130 @@ const JobPost = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs
-              .filter(job => !viewSavedJobs || savedJobs.includes(job.id))
-              .map(job => {
-                const isEligible = checkEligibility(job);
-                const isSaved = savedJobs.includes(job.id);
-                const isApplied = appliedJobs.includes(job.id);
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading job postings...</p>
+            </div>
+          ) : (
+            <>
+              {jobs.filter(job => !viewSavedJobs || savedJobs.includes(job.id)).length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {jobs
+                    .filter(job => !viewSavedJobs || savedJobs.includes(job.id))
+                    .map(job => {
+                      const isEligible = checkEligibility(job);
+                      const isSaved = savedJobs.includes(job.id);
+                      const isApplied = appliedJobs.includes(job.id);
         
-                return (
-                  <div key={job.id} className="bg-white rounded-lg shadow-sm p-6">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-xl font-medium">{job.position}</h3>
-                        <p className="text-gray-600">{job.company}</p>
-                      </div>
-                      <div className={`px-3 py-1 rounded text-sm ${
-                        isEligible 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {isEligible ? 'Eligible' : 'Not Eligible'}
-                      </div>
-                    </div>
-        
-                    {!isEligible && (
-                      <div className="mb-4 p-3 bg-red-50 rounded-md">
-                        <p className="text-sm font-medium text-red-800 mb-2">Eligibility Issues:</p>
-                        <ul className="list-disc list-inside text-sm text-red-700">
-                          {getEligibilityDetails(job).map((reason, index) => (
-                            <li key={index}>{reason}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-        
-                    <div className="space-y-2 mb-4">
-                      <p><span className="font-medium">Location:</span> {job.location || 'Not specified'}</p>
-                      <p><span className="font-medium">Salary:</span> {job.salary || 'Not specified'}</p>
-                      <p><span className="font-medium">Deadline:</span> {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'Not specified'}</p>
-                      <p><span className="font-medium">Required CGPA:</span> {job.minCGPA || 'Not specified'}</p>
-                      <p><span className="font-medium">Required Skills:</span> {job.skills?.join(', ') || 'None'}</p>
-                      {job.skills && job.skills.length > 0 && studentProfile.skills && (
-                        <div className="mt-2">
-                          <div className="text-sm font-medium">Skill Match</div>
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div 
-                              className="bg-blue-600 h-2.5 rounded-full"
-                              style={{ width: `${calculateSkillMatch(job)}%` }}
-                            ></div>
+                      return (
+                        <div key={job.id} className="bg-white rounded-lg shadow-sm p-6">
+                          {/* Header */}
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="text-xl font-medium">{job.position}</h3>
+                              <p className="text-gray-600">{job.company}</p>
+                            </div>
+                            <div className={`px-3 py-1 rounded text-sm ${
+                              isEligible 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {isEligible ? 'Eligible' : 'Not Eligible'}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600 mt-1">{calculateSkillMatch(job)}% match</div>
-                        </div>
-                      )}
-                    </div>
         
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleViewDetails(job)}
-                        className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                      >
-                        View Details
-                      </button>
-                      {!isSaved && (
-                        <button
-                          onClick={() => handleSaveJob(job.id)}
-                          className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                        >
-                          Save
-                        </button>
-                      )}
-                      {!isApplied && isEligible && (
-                        <button
-                          onClick={() => handleApply(job.id)}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                        >
-                          Apply
-                        </button>
-                      )}
-                      {isApplied && (
-                        <button
-                          disabled
-                          className="flex-1 px-4 py-2 bg-green-100 text-green-800 rounded cursor-not-allowed"
-                        >
-                          Applied
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </> // Make sure this closing fragment tag exists and is correctly placed
+                          {!isEligible && (
+                            <div className="mb-4 p-3 bg-red-50 rounded-md">
+                              <p className="text-sm font-medium text-red-800 mb-2">Eligibility Issues:</p>
+                              <ul className="list-disc list-inside text-sm text-red-700">
+                                {getEligibilityDetails(job).map((reason, index) => (
+                                  <li key={index}>{reason}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+        
+                          <div className="space-y-2 mb-4">
+                            <p><span className="font-medium">Location:</span> {job.location || 'Not specified'}</p>
+                            <p><span className="font-medium">Salary:</span> {job.salary || 'Not specified'}</p>
+                            <p><span className="font-medium">Deadline:</span> {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'Not specified'}</p>
+                            <p><span className="font-medium">Required CGPA:</span> {job.minCGPA || 'Not specified'}</p>
+                            <p><span className="font-medium">Required Skills:</span> {job.skills?.join(', ') || 'None'}</p>
+                            {job.skills && job.skills.length > 0 && studentProfile.skills && (
+                              <div className="mt-2">
+                                <div className="text-sm font-medium">Skill Match</div>
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                  <div 
+                                    className="bg-blue-600 h-2.5 rounded-full"
+                                    style={{ width: `${calculateSkillMatch(job)}%` }}
+                                  ></div>
+                                </div>
+                                <div className="text-sm text-gray-600 mt-1">{calculateSkillMatch(job)}% match</div>
+                              </div>
+                            )}
+                          </div>
+        
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleViewDetails(job)}
+                              className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                            >
+                              View Details
+                            </button>
+                            {!isSaved && (
+                              <button
+                                onClick={() => handleSaveJob(job.id)}
+                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                              >
+                                Save
+                              </button>
+                            )}
+                            {!isApplied && isEligible && (
+                              <button
+                                onClick={() => handleApply(job.id)}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                              >
+                                Apply
+                              </button>
+                            )}
+                            {isApplied && (
+                              <button
+                                disabled
+                                className="flex-1 px-4 py-2 bg-green-100 text-green-800 rounded cursor-not-allowed"
+                              >
+                                Applied
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg">
+                  <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <h3 className="mt-4 text-xl font-medium text-gray-700">
+                    {viewSavedJobs ? 'No saved jobs found' : 'No job postings available'}
+                  </h3>
+                  <p className="mt-2 text-gray-500">
+                    {viewSavedJobs ? 'You haven\'t saved any jobs yet' : 'Check back later for new opportunities'}
+                  </p>
+                  {viewSavedJobs && (
+                    <button
+                      onClick={() => setViewSavedJobs(false)}
+                      className="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                      View All Jobs
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </>
       ) : (
         // Full page job details view
         <div className="container mx-auto px-4 py-6">
@@ -591,55 +646,48 @@ const JobPost = () => {
                           <p className="font-medium mb-2">Question {index + 1}: {question.question}</p>
                           <p className="text-sm text-gray-600 mb-3">Type: {question.type}</p>
                           
-                          {/* Text input for open-ended questions */}
-                          {question.type === 'text' && (
-                            <textarea
-                              className="w-full p-2 border rounded-md"
-                              rows="3"
-                              placeholder="Enter your answer..."
-                            />
-                          )}
-
-                          {/* Radio buttons for yes/no questions */}
-                          {question.type === 'yes/no' && (
-                            <div className="space-x-4">
-                              <label className="inline-flex items-center">
-                                <input
-                                  type="radio"
-                                  name={`question-${index}`}
-                                  value="yes"
-                                  className="mr-2"
-                                />
-                                Yes
-                              </label>
-                              <label className="inline-flex items-center">
-                                <input
-                                  type="radio"
-                                  name={`question-${index}`}
-                                  value="no"
-                                  className="mr-2"
-                                />
-                                No
-                              </label>
-                            </div>
-                          )}
-
-                          {/* Radio buttons for multiple choice questions */}
-                          {question.type === 'multiple_choice' && question.options && (
-                            <div className="space-y-2">
-                              {question.options.map((option, optIndex) => (
-                                <label key={optIndex} className="block">
+                          <div>
+                            {/* Radio buttons for yes/no questions */}
+                            {(question.type === 'yes/no' || question.type === 'yesno') && (
+                              <div className="space-x-4">
+                                <label className="inline-flex items-center">
                                   <input
                                     type="radio"
                                     name={`question-${index}`}
-                                    value={option}
+                                    value="yes"
+                                    checked={screeningAnswers[index] === 'yes'}
+                                    onChange={(e) => handleAnswerChange(index, e.target.value)}
                                     className="mr-2"
                                   />
-                                  {option}
+                                  Yes
                                 </label>
-                              ))}
-                            </div>
-                          )}
+                                <label className="inline-flex items-center">
+                                  <input
+                                    type="radio"
+                                    name={`question-${index}`}
+                                    value="no"
+                                    checked={screeningAnswers[index] === 'no'}
+                                    onChange={(e) => handleAnswerChange(index, e.target.value)}
+                                    className="mr-2"
+                                  />
+                                  No
+                                </label>
+                              </div>
+                            )}
+                            
+                            {/* Text input for text questions */}
+                            {question.type === 'text' && (
+                              <div>
+                                <input
+                                  type="text"
+                                  placeholder="Your answer"
+                                  value={screeningAnswers[index] || ''}
+                                  onChange={(e) => handleAnswerChange(index, e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

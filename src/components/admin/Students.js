@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -47,8 +47,72 @@ const Students = () => {
     return matchesSearch && matchesDepartment;
   });
 
-  const handleStudentClick = (student) => {
-    setSelectedStudent(student);
+  // Updated handleStudentClick function to fetch applications and analytics
+  const handleStudentClick = async (student) => {
+    // Make sure skills is always an array before setting the selected student
+    const studentWithValidSkills = {
+      ...student,
+      skills: Array.isArray(student.skills) ? student.skills : [],
+      // Ensure these fields exist with proper names
+      mobile: student.mobile || student.phone || '',
+      historyArrears: student.historyArrears || student.history_arrears || '0',
+      currentArrears: student.currentArrears || student.current_arrears || '0'
+    };
+    
+    try {
+      // Fetch all applications for this student
+      const applicationsRef = collection(db, "applications");
+      const q = query(applicationsRef, where("student_id", "==", student.id));
+      const querySnapshot = await getDocs(q);
+      
+      const studentApplications = [];
+      
+      // Process each application and get job details
+      await Promise.all(querySnapshot.docs.map(async (appDoc) => {
+        const appData = { id: appDoc.id, ...appDoc.data() };
+        
+        // Fetch job details for this application
+        try {
+          const jobId = appData.jobId || appData.job_id;
+          if (jobId) {
+            const jobRef = doc(db, "jobs", jobId);
+            const jobSnap = await getDoc(jobRef);
+            
+            if (jobSnap.exists()) {
+              appData.job = {
+                id: jobSnap.id,
+                ...jobSnap.data()
+              };
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching job details:", error);
+        }
+        
+        studentApplications.push(appData);
+      }));
+      
+      // Add applications data and analytics to student object
+      studentWithValidSkills.applications = studentApplications;
+      
+      // Calculate analytics
+      const statusCounts = studentApplications.reduce((acc, app) => {
+        const status = app.status || 'pending';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {});
+      
+      studentWithValidSkills.analytics = {
+        totalApplications: studentApplications.length,
+        statusCounts
+      };
+      
+      setSelectedStudent(studentWithValidSkills);
+    } catch (error) {
+      console.error("Error fetching student applications:", error);
+      toast.error("Failed to load student application data");
+      setSelectedStudent(studentWithValidSkills);
+    }
   };
 
   return (
@@ -88,7 +152,7 @@ const Students = () => {
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-teal-100">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Number</th>
@@ -110,7 +174,7 @@ const Students = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.rollNumber}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.department}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.batch}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.passoutYear}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.mobile}</td>
                 </tr>
               ))}

@@ -8,6 +8,38 @@ import { useNavigate } from 'react-router-dom';
 // Add these imports at the top
 import { addDoc, serverTimestamp } from 'firebase/firestore';
 
+// Custom toast component for truncating long messages
+const CustomToast = ({ message }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const shouldTruncate = message.length > 15;
+  
+  return (
+    <div>
+      {shouldTruncate && !isExpanded ? (
+        <div>
+          {message.substring(0, 15)}
+          <button 
+            onClick={() => setIsExpanded(true)}
+            className="ml-2 text-blue-500 underline text-sm"
+          >
+            Show More
+          </button>
+        </div>
+      ) : (
+        message
+      )}
+    </div>
+  );
+};
+
+// Custom toast function
+const showToast = (message, type = 'success') => {
+  toast[type](
+    <CustomToast message={message} />,
+    { closeButton: true }
+  );
+};
+
 const ManageApplications = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
@@ -36,11 +68,11 @@ const ManageApplications = () => {
         [jobId]: shareLink
       }));
 
-      toast.success('Share link generated successfully!');
+      showToast('Share link generated successfully!');
       return shareLink;
     } catch (error) {
       console.error('Error generating share link:', error);
-      toast.error('Failed to generate share link');
+      showToast('Failed to generate share link', 'error');
     }
   };
 
@@ -48,7 +80,7 @@ const ManageApplications = () => {
     if (jobId) {
       navigate(`/admin/job-applications/${jobId}`);
     } else {
-      toast.error('Invalid job ID');
+      showToast('Invalid job ID', 'error');
     }
   };
 
@@ -56,12 +88,12 @@ const ManageApplications = () => {
     try {
       if (window.confirm('Are you sure you want to delete this job?')) {
         await deleteDoc(doc(db, 'jobs', jobId));
-        toast.success('Job deleted successfully');
+        showToast('Job deleted successfully');
         fetchJobs(); // Refresh the jobs list
       }
     } catch (error) {
       console.error('Error deleting job:', error);
-      toast.error('Failed to delete job');
+      showToast('Failed to delete job', 'error');
     }
   };
 
@@ -74,7 +106,7 @@ const ManageApplications = () => {
       const jobsRef = collection(db, 'jobs');
       const jobsSnapshot = await getDocs(jobsRef);
       const jobsData = [];
-  
+
       for (const jobDoc of jobsSnapshot.docs) {
         const jobData = jobDoc.data();
         const applicationsRef = collection(db, 'applications');
@@ -98,17 +130,36 @@ const ManageApplications = () => {
           });
         }
   
-        // Format the deadline
-        const deadline = jobData.deadline instanceof Date ? 
-          jobData.deadline.toLocaleDateString() : 
-          (jobData.deadline?.toDate ? 
-            jobData.deadline.toDate().toLocaleDateString() : 
-            'Invalid Date');
-  
+        // Properly handle the Firestore timestamp
+        let deadlineDate = null;
+        let deadlineFormatted = 'No Deadline';
+        
+        if (jobData.deadline) {
+          // Check if it's a Firestore timestamp
+          if (jobData.deadline.toDate && typeof jobData.deadline.toDate === 'function') {
+            deadlineDate = jobData.deadline.toDate();
+            deadlineFormatted = deadlineDate.toLocaleDateString();
+          } 
+          // Check if it's already a Date object
+          else if (jobData.deadline instanceof Date) {
+            deadlineDate = jobData.deadline;
+            deadlineFormatted = deadlineDate.toLocaleDateString();
+          }
+          // If it's a string that can be parsed as a date
+          else if (typeof jobData.deadline === 'string') {
+            const parsedDate = new Date(jobData.deadline);
+            if (!isNaN(parsedDate.getTime())) {
+              deadlineDate = parsedDate;
+              deadlineFormatted = deadlineDate.toLocaleDateString();
+            }
+          }
+        }
+
         jobsData.push({
           id: jobDoc.id,
           ...jobData,
-          deadline: deadline,
+          deadlineDate: deadlineDate, // Store the actual Date object for sorting
+          deadline: deadlineFormatted, // Store the formatted string for display
           stats: {
             total: applications.length,
             shortlisted: applications.filter(app => app.status === 'shortlisted').length,
@@ -118,7 +169,7 @@ const ManageApplications = () => {
           applications: applications
         });
       }
-  
+
       setJobs(jobsData);
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -131,7 +182,11 @@ const ManageApplications = () => {
   const sortedJobs = [...jobs].sort((a, b) => {
     switch (sortBy) {
       case 'deadline':
-        return new Date(a.deadline) - new Date(b.deadline);
+        // Use the Date objects directly for comparison
+        // If no deadline, put it at the end
+        if (!a.deadlineDate) return 1;
+        if (!b.deadlineDate) return -1;
+        return a.deadlineDate - b.deadlineDate;
       case 'applicants':
         return b.stats.total - a.stats.total;
       case 'shortlisted':

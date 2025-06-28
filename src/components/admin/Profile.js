@@ -1,21 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { auth, db } from '../../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Profile = () => {
   const [userData, setUserData] = useState({
-    name: 'Paxton',
-    rollNumber: 'AV.EN.U4CSE22100',
-    program: 'BTech',
-    email: 'paxton@gmail.com',
-    mobile: '+91 9063553559',
-    batch: 'AV22UCSEB',
-    department: 'Computer Science',
-    semester: '4',
+    name: '',
+    rollNumber: '',
+    program: '',
+    email: '',
+    mobile: '',
+    batch: '',
+    department: '',
+    semester: '',
     historyOfArrears: '0',
     backlogsCleared: 'No'
   });
+  
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        // Get admin data from Firestore
+        const adminRef = doc(db, "admins", user.uid);
+        const adminSnap = await getDoc(adminRef);
+        
+        setUserData(prev => ({
+          ...prev,
+          name: user.displayName || "Admin",
+          email: user.email || "",
+          // Get additional data from Firestore document if it exists
+          rollNumber: adminSnap.exists() ? adminSnap.data().rollNumber || "" : "",
+          program: adminSnap.exists() ? adminSnap.data().program || "" : "",
+          mobile: adminSnap.exists() ? adminSnap.data().mobile || "" : "",
+          batch: adminSnap.exists() ? adminSnap.data().batch || "" : "",
+          department: adminSnap.exists() ? adminSnap.data().department || "" : "",
+          semester: adminSnap.exists() ? adminSnap.data().semester || "" : "",
+          historyOfArrears: adminSnap.exists() ? adminSnap.data().historyOfArrears || "0" : "0",
+          backlogsCleared: adminSnap.exists() ? adminSnap.data().backlogsCleared || "No" : "No"
+        }));
+      } catch (error) {
+        console.error("Error fetching admin profile:", error);
+        toast.error("Failed to load profile data");
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <ToastContainer />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -65,56 +103,8 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Academic Status */}
-          <div className="col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Academic Status</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500">History of Arrears</label>
-                  <input
-                    type="number"
-                    value={userData.historyOfArrears}
-                    onChange={(e) => setUserData({ ...userData, historyOfArrears: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    min="0"
-                  />
-                </div>
 
-                {Number(userData.historyOfArrears) > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">Backlogs Cleared</label>
-                    <select
-                      value={userData.backlogsCleared}
-                      onChange={(e) => setUserData({ ...userData, backlogsCleared: e.target.value })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="col-span-3">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="flex space-x-4">
-                <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                  Edit Profile
-                </button>
-                <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-                  Download Resume
-                </button>
-                <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                  View Applications
-                </button>
-              </div>
-            </div>
-          </div>
+ 
         </div>
       </div>
     </div>

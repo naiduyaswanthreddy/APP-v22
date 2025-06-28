@@ -3,6 +3,8 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Pie, Line } from 'react-chartjs-2';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import StudentProfilePDF from './StudentProfilePDF';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../../firebase';
 
 // Register ChartJS components
 ChartJS.register(
@@ -133,10 +135,22 @@ const StudentDetailsModal = ({ student, onClose }) => {
   };
 
   // Handle saving notes
-  const handleSaveNotes = () => {
-    // In a real implementation, you would save this to your database
-    // For now, we'll just show a success message
-    alert('Notes saved successfully!');
+  const handleSaveNotes = async () => {
+    try {
+      // Get a reference to the student document in Firestore
+      const studentRef = doc(db, "students", student.id);
+      
+      // Update the document with the notes
+      await updateDoc(studentRef, {
+        notes: notes
+      });
+      
+      // Show success message
+      alert('Notes saved successfully!');
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      alert(`Failed to save notes: ${error.message}`);
+    }
   };
 
   return (

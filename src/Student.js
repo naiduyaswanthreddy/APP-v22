@@ -11,7 +11,7 @@ import {
   Code, 
   User, 
   Image, 
-  Bell,  // Add Bell icon import
+  Bell,
   LogOut 
 } from 'lucide-react';
 
@@ -20,29 +20,59 @@ const Student = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [userData, setUserData] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   useEffect(() => {
-      const user = auth.currentUser;
-      if (user) {
-        setUserData({
-          name: user.displayName || "User",
-          rollNumber: localStorage.getItem("rollNumber"),
-      
-        });
-      }
-    }, []);
+    const user = auth.currentUser;
+    if (user) {
+      setUserData({
+        name: user.displayName || "User",
+        rollNumber: localStorage.getItem("rollNumber"),
+      });
+    }
 
-    if (!userData) return <p>Loading profile...</p>;
+    // Get initial unread count from localStorage
+    const storedCount = localStorage.getItem('unreadNotificationsCount');
+    if (storedCount) {
+      setUnreadCount(parseInt(storedCount, 10));
+    }
+
+    // Listen for updates to unread count
+    const handleUnreadCountUpdate = (event) => {
+      setUnreadCount(event.detail.count);
+    };
+
+    window.addEventListener('unreadNotificationsUpdated', handleUnreadCountUpdate);
+
+    return () => {
+      window.removeEventListener('unreadNotificationsUpdated', handleUnreadCountUpdate);
+    };
+  }, []);
+
+  if (!userData) return <p>Loading profile...</p>;
 
   const menuItems = [
-    { name: "Notifications", path: "/student/notifications", icon: <Bell size={20} /> },
+    { 
+      name: "Notifications", 
+      path: "/student/notifications", 
+      icon: (
+        <div className="relative">
+          <Bell size={20} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </div>
+      ) 
+    },
     { name: "Resources", path: "/student/resources", icon: <BookOpen size={20} /> },
     { name: "Job Posting", path: "/student/jobpost", icon: <Briefcase size={20} /> },
     { name: "Applications", path: "/student/applications", icon: <FileText size={20} /> },
     { name: "Coding", path: "/student/coding", icon: <Code size={20} /> },
     { name: "Profile", path: "/student/profile", icon: <User size={20} /> },
     { name: "Gallery", path: "/student/gallery", icon: <Image size={20} /> },
-];
+  ];
 
   const handleLogout = async () => {
     try {

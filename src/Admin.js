@@ -1,7 +1,8 @@
 import { signOut } from "firebase/auth";
-import { auth } from "./firebase";
-import React, { useState } from 'react';
+import { auth, db } from "./firebase";
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link, Outlet } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -14,7 +15,7 @@ import {
   Users,
   BarChart,
   Bell,
-  Building,  // Add Building icon for Companies
+  Building,
   LogOut 
 } from 'lucide-react';
 
@@ -22,18 +23,47 @@ const Admin = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-
-  const userData = {
+  const [userData, setUserData] = useState({
     name: 'Admin',
-    rollNo: 'AV.EN.U4CSE22100',
-    batch: 'AV22UCSEB',
-    program: 'Btech',
-    degree: 'Computer Science and Engineering',
-    mobile: '+91 9063553559',
-    email: 'paxton@gmail.com',
-    github: 'github/profile',
-    leetcode: 'leetcode/profile',
-    hackerrank: 'hackerrank/profile'
+    rollNo: '',
+    batch: '',
+    program: '',
+    degree: '',
+    mobile: '',
+    email: '',
+    github: '',
+    leetcode: '',
+    hackerrank: ''
+  });
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        // Get admin data from Firestore
+        const adminRef = doc(db, "admins", user.uid);
+        const adminSnap = await getDoc(adminRef);
+        
+        setUserData({
+          name: user.displayName || "Admin",
+          email: user.email || "",
+          rollNo: adminSnap.exists() ? adminSnap.data().rollNumber || "" : "",
+          batch: adminSnap.exists() ? adminSnap.data().batch || "" : "",
+          program: adminSnap.exists() ? adminSnap.data().program || "" : "",
+          degree: adminSnap.exists() ? adminSnap.data().department || "" : "",
+          mobile: adminSnap.exists() ? adminSnap.data().mobile || "" : "",
+          github: adminSnap.exists() ? adminSnap.data().github || "" : "",
+          leetcode: adminSnap.exists() ? adminSnap.data().leetcode || "" : "",
+          hackerrank: adminSnap.exists() ? adminSnap.data().hackerrank || "" : ""
+        });
+      } catch (error) {
+        console.error("Error fetching admin data:", error);
+      }
+    }
   };
 
   const menuItems = [
@@ -43,11 +73,11 @@ const Admin = () => {
     { name: "Job Posting", path: "/admin/jobpost", icon: <Briefcase size={20} /> },
     { name: "Manage Applications", path: "/admin/manage-applications", icon: <FileText size={20} /> },
     { name: "Students", path: "/admin/students", icon: <Users size={20} /> },
-    { name: "Companies", path: "/admin/companies", icon: <Building size={20} /> }, // Add Companies menu item
+    { name: "Companies", path: "/admin/companies", icon: <Building size={20} /> },
     { name: "Coding", path: "/admin/coding", icon: <Code size={20} /> },
     { name: "Profile", path: "/admin/profile", icon: <User size={20} /> },
     { name: "Gallery", path: "/admin/gallery", icon: <Image size={20} /> },
-];
+  ];
 
   const handleLogout = async () => {
     try {
