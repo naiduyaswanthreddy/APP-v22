@@ -9,7 +9,15 @@ const useAnalyticsData = (filters) => {
     registeredStudents: 0,
     totalApplications: 0,
     placedStudents: 0,
+    notPlacedStudents: 0,
+    totalOffers: 0,
+    highestCTC: 0,
+    averageCTC: 0,
+    lowestCTC: 0,
     placementPercentage: 0,
+    jobsSecured: 0,
+    placementsSecured: 0,
+    companiesParticipated: 0,
   });
 
   const [branchData, setBranchData] = useState({
@@ -62,6 +70,16 @@ const useAnalyticsData = (filters) => {
     skills: { labels: [], datasets: [] },
   });
 
+  // Utility to check if any filter is active
+  const hasActiveFilters = (() => {
+    const { dateRange, ...rest } = filters;
+    const dateActive = dateRange && (dateRange.start || dateRange.end);
+    return (
+      dateActive ||
+      Object.values(rest).some(v => v && v !== '')
+    );
+  })();
+
   // Helper function to apply filters to students
   const applyStudentFilters = (students, filters) => {
     return students.filter(student => {
@@ -79,17 +97,21 @@ const useAnalyticsData = (filters) => {
       const appTimestamp = app.timestamp instanceof Date ? app.timestamp : new Date(app.timestamp);
       const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
       const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
-
       const dateMatch = (!startDate || appTimestamp >= startDate) && (!endDate || appTimestamp <= endDate);
 
-      // Round filter (This is tricky as round status is nested.
-      // For simplicity, let's assume filtering by round means filtering applications
-      // that have a specific status in a specific round.
-      // A more robust implementation might require filtering based on the *outcome* of a round.)
-      // For now, we'll skip filtering by 'round' in applications unless specified how.
-      // const roundMatch = !filters.round || (app.rounds && app.rounds[filters.round] !== undefined); // Example: filter if round exists
+      // Application status filter
+      const statusMatch = !filters.applicationStatus || app.status === filters.applicationStatus;
 
-      return dateMatch; // && roundMatch;
+      // Company filter (robust: check company, companyName, job_company)
+      const companyMatch = !filters.company ||
+        app.company === filters.company ||
+        app.companyName === filters.company ||
+        app.job_company === filters.company;
+
+      // Job role filter (assumes app.position or similar field exists)
+      const jobRoleMatch = !filters.jobRole || app.position === filters.jobRole;
+
+      return dateMatch && statusMatch && companyMatch && jobRoleMatch;
     });
   };
 
@@ -106,11 +128,16 @@ const useAnalyticsData = (filters) => {
          const jobPostedDate = job.postedDate instanceof Date ? job.postedDate : (job.postedDate ? new Date(job.postedDate) : null);
          const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
          const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
-
          const dateMatch = (!startDate || (jobPostedDate && jobPostedDate >= startDate)) && (!endDate || (jobPostedDate && jobPostedDate <= endDate));
 
-         // Currently, only date range filter is applied to jobs based on UI filters
-         return dateMatch;
+         // Company filter
+         const companyMatch = !filters.company || job.company === filters.company;
+
+         // Job role filter (assumes job.position or job.title field exists)
+         const jobRoleMatch = !filters.jobRole || job.position === filters.jobRole;
+
+         // Currently, only date range, company, and job role filters are applied to jobs
+         return dateMatch && companyMatch && jobRoleMatch;
      });
   };
 
@@ -164,17 +191,69 @@ const useAnalyticsData = (filters) => {
         const placedStudentIds = new Set(filteredApplications.filter(app => app.status === 'selected').map(app => app.student_id));
         const placedStudents = filteredStudents.filter(student => placedStudentIds.has(student.id)).length;
 
+        const jobsSecured = new Set(filteredApplications.filter(app => app.status === 'selected').map(app => app.job_id)).size;
+        const placementsSecured = placedStudents;
 
         const placementPercentage = registeredStudents > 0
           ? ((placedStudents / registeredStudents) * 100).toFixed(1)
           : 0;
 
+        // Calculate additional metrics
+        const notPlacedStudents = registeredStudents - placedStudents;
+        const totalOffers = placedStudents; // Assuming each placed student received an offer
+        
+        // Calculate CTC metrics from job postings for placed students
+        const selectedApplications = filteredApplications.filter(app => app.status === 'selected');
+        
+        // Get CTC values from job postings for placed students
+        const ctcValues = [];
+        for (const app of selectedApplications) {
+          // Find the corresponding job posting
+          const job = filteredJobs.find(job => job.id === app.job_id);
+          if (job && job.ctc) {
+            // Extract numeric value from CTC string (e.g., "₹10 LPA" -> 10)
+            const ctcMatch = job.ctc.match(/(\d+(?:\.\d+)?)/);
+            if (ctcMatch) {
+              const ctcValue = parseFloat(ctcMatch[1]);
+              if (ctcValue > 0) {
+                ctcValues.push(ctcValue);
+              }
+            }
+          }
+        }
+        
+        const highestCTC = ctcValues.length > 0 ? Math.max(...ctcValues) : 0;
+        const lowestCTC = ctcValues.length > 0 ? Math.min(...ctcValues) : 0;
+        const averageCTC = ctcValues.length > 0 ? (ctcValues.reduce((sum, ctc) => sum + ctc, 0) / ctcValues.length).toFixed(2) : 0;
+        
+        // Count unique companies that participated
+        const companiesParticipated = companies.size;
+
         setSummaryData({
-          jobOpenings: filteredJobs.length,  // Changed from totalJobs to filteredJobs.length
+          jobOpenings: filteredJobs.length,
           registeredStudents: registeredStudents,
           totalApplications: totalApplications,
           placedStudents: placedStudents,
+          notPlacedStudents: notPlacedStudents,
+          totalOffers: totalOffers,
+          highestCTC: highestCTC,
+          averageCTC: averageCTC,
+          lowestCTC: lowestCTC,
           placementPercentage,
+          jobsSecured,
+          placementsSecured,
+          companiesParticipated,
+        });
+
+        setCompanyData({
+          labels: Array.from(new Set(filteredJobs.map(job => job.company))),
+          datasets: [{
+            data: [], // keep as is or update as needed
+            backgroundColor: [],
+            borderColor: [],
+            borderWidth: 1,
+            label: 'Number of Hires'
+          }]
         });
 
       } catch (error) {
@@ -401,11 +480,19 @@ const useAnalyticsData = (filters) => {
 
 
           // Calculate applications and status from the *filtered* application list
-          const companyApplications = filteredApplications.filter(app => app.companyName === company);
+          const companyApplications = filteredApplications.filter(app =>
+            app.company === company ||
+            app.companyName === company ||
+            app.job_company === company
+          );
+          console.log(`Company: ${company}, Applications:`, companyApplications);
           const applied = companyApplications.length;
-          const eligible = eligibleStudents.length; // <-- This is the count being reported as 0
+          const eligible = eligibleStudents.length;
           const notApplied = Math.max(0, eligible - applied);
-          const selected = companyApplications.filter(app => app.status === 'selected').length;
+          // Count unique students with at least one 'selected' application for this company
+          const selectedStudentIds = new Set(companyApplications.filter(app => app.status === 'selected').map(app => app.student_id));
+          console.log(`Company: ${company}, Selected Student IDs:`, Array.from(selectedStudentIds));
+          const selected = selectedStudentIds.size;
           const rejected = companyApplications.filter(app => app.status === 'rejected').length;
 
           return {
@@ -434,6 +521,19 @@ const useAnalyticsData = (filters) => {
   // useEffect for funnel and round data
   // Add filters to dependencies
   useEffect(() => {
+    if (!hasActiveFilters) {
+      setFunnelData({
+        labels: ['Eligible', 'Applied', 'Shortlisted', 'Interviewed', 'Offers', 'Accepted'],
+        datasets: [{
+          label: 'Recruitment Funnel',
+          data: [0, 0, 0, 0, 0, 0],
+          backgroundColor: 'rgba(75, 192, 192, 0.5)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1
+        }]
+      });
+      return;
+    }
     const fetchFunnelAndRoundData = async () => {
       try {
         const applicationsSnapshot = await getDocs(collection(db, 'applications'));
@@ -443,53 +543,63 @@ const useAnalyticsData = (filters) => {
              timestamp: doc.data().timestamp?.toDate() || new Date() // Ensure timestamp is Date object
         }));
 
-        // Apply application filters
-        const filteredApplications = applyApplicationFilters(allApplications, filters);
-
         const studentsSnapshot = await getDocs(collection(db, 'students'));
         const allStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Apply student filters to get the base population for 'Eligible'
-        const filteredStudents = applyStudentFilters(allStudents, filters);
-        const totalEligibleStudents = filteredStudents.length;
 
+        // If company filter is set, only consider students and applications relevant to that company
+        let filteredApplications = allApplications;
+        let filteredStudents = allStudents;
+        if (filters.company) {
+          filteredApplications = allApplications.filter(app =>
+            app.company === filters.company ||
+            app.companyName === filters.company ||
+            app.job_company === filters.company
+          );
+          // Only students who have applied to this company
+          const studentIdsForCompany = new Set(filteredApplications.map(app => app.student_id || app.studentId));
+          filteredStudents = allStudents.filter(s => studentIdsForCompany.has(s.id));
+        }
+
+        // Use the same eligibility logic as the pie chart
+        const eligibleStudents = filteredStudents.filter(s =>
+          s.cgpa >= 6.0 &&
+          s.backlogs === 0 &&
+          s.attendance >= 75 &&
+          s.isFinalYear &&
+          !s.disciplinaryAction
+        );
+        const eligibleStudentIds = new Set(eligibleStudents.map(s => s.id));
+
+        // Only include applications from eligible students
+        const eligibleApplications = filteredApplications.filter(app => eligibleStudentIds.has(app.student_id || app.studentId));
+
+        // Apply application filters to eligible applications
+        const finalFilteredApplications = applyApplicationFilters(eligibleApplications, filters);
 
         const funnelCounts = {
-          eligible: totalEligibleStudents, // Eligible count based on filtered students
-          applied: filteredApplications.length, // Applied count based on filtered applications
+          eligible: eligibleStudents.length,
+          applied: finalFilteredApplications.length,
           shortlisted: 0,
           interviewed: 0,
           offers: 0,
           accepted: 0
         };
-        const roundStats = {
-          'Resume Screening': { started: 0, passed: 0 }, 'Aptitude Test': { started: 0, passed: 0 },
-          'Technical Interview': { started: 0, passed: 0 }, 'HR Interview': { started: 0, passed: 0 }
-        };
 
-        // Count statuses and rounds based on *filtered* applications
-        filteredApplications.forEach(app => {
-          if (app.status === 'shortlisted') funnelCounts.shortlisted++;
-          if (app.status === 'interviewed') funnelCounts.interviewed++;
-          if (app.status === 'offered') funnelCounts.offers++;
-          if (app.status === 'accepted') funnelCounts.accepted++;
-          Object.entries(app.rounds || {}).forEach(([round, status]) => {
-            if (roundStats[round]) {
-              roundStats[round].started++;
-              if (status === 'passed') roundStats[round].passed++;
-            }
-          });
+        finalFilteredApplications.forEach(app => {
+          if (app.status && app.status.toLowerCase() === 'shortlisted') funnelCounts.shortlisted++;
+          if (app.status && app.status.toLowerCase() === 'interviewed') funnelCounts.interviewed++;
+          if (app.status && app.status.toLowerCase() === 'offered') funnelCounts.offers++;
+          if (app.status && app.status.toLowerCase() === 'accepted') funnelCounts.accepted++;
         });
-
+        // Debug logging
+        console.log('FunnelData - eligible:', eligibleStudents.length, 'applied:', finalFilteredApplications.length, 'shortlisted:', funnelCounts.shortlisted, 'interviewed:', funnelCounts.interviewed, 'offers:', funnelCounts.offers, 'accepted:', funnelCounts.accepted);
         setFunnelData(prev => ({ ...prev, datasets: [{ ...prev.datasets[0], data: Object.values(funnelCounts) }] }));
-        setRoundData(Object.entries(roundStats).map(([round, stats]) => ({
-          round, started: stats.started, passed: stats.passed, eliminated: stats.started - stats.passed
-        })));
       } catch (error) {
         console.error('Error fetching funnel and round data:', error);
       }
     };
     fetchFunnelAndRoundData();
-  }, [filters]); // Add filters as a dependency
+  }, [filters, hasActiveFilters]); // Add filters as a dependency
 
   // useEffect for Demographic and Skill Breakdowns
   // Add filters to dependencies

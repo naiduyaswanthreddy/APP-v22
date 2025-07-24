@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Building, Users, Calendar, Clock, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 const CompanyMonitoring = () => {
   const navigate = useNavigate();
@@ -104,9 +105,7 @@ const CompanyMonitoring = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
+        <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading companies..." /></div>
       ) : companies.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <Building size={48} className="mx-auto text-gray-400 mb-4" />

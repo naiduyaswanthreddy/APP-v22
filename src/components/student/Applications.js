@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'; // Added updateDoc
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'; // Added serverTimestamp
 import { db, auth } from '../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createStatusUpdateNotification } from '../../utils/notificationHelpers';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
+// First, add 'withdrawn' to the STATUS_COLORS object
 const STATUS_COLORS = {
   'pending': 'bg-yellow-100 text-yellow-800',
   'under_review': 'bg-blue-100 text-blue-800',
@@ -13,9 +15,11 @@ const STATUS_COLORS = {
   'waitlisted': 'bg-orange-100 text-orange-800',
   'interview_scheduled': 'bg-purple-100 text-purple-800',
   'selected': 'bg-emerald-100 text-emerald-800',
-  'rejected': 'bg-red-100 text-red-800'
+  'rejected': 'bg-red-100 text-red-800',
+  'withdrawn': 'bg-red-100 text-red-800' // Using red color for withdrawn applications
 };
 
+// Also add 'withdrawn' to the STATUS_LABELS object
 const STATUS_LABELS = {
   'pending': '⏳ Applied',
   'under_review': '⏳ Under Review',
@@ -24,7 +28,8 @@ const STATUS_LABELS = {
   'waitlisted': '🟡 Waitlisted',
   'interview_scheduled': '📅 Interview Scheduled',
   'selected': '🎉 Selected',
-  'rejected': '⚠️ Rejected'
+  'rejected': '⚠️ Rejected',
+  'withdrawn': '🚫 Withdrawn' // Adding withdrawn label
 };
 
 const Applications = () => {
@@ -120,6 +125,11 @@ const Applications = () => {
   const filteredApplications = applications
     .filter(app => filter === 'all' ? true : app.status === filter)
     .sort((a, b) => {
+      // First sort withdrawn applications to the end
+      if (a.status === 'withdrawn' && b.status !== 'withdrawn') return 1;
+      if (a.status !== 'withdrawn' && b.status === 'withdrawn') return -1;
+      
+      // Then apply the regular sorting
       if (sortBy === 'newest') return b.applied_at - a.applied_at;
       if (sortBy === 'oldest') return a.applied_at - b.applied_at;
       if (sortBy === 'company') return a.job.company.localeCompare(b.job.company);
@@ -130,16 +140,42 @@ const Applications = () => {
     try {
       const user = auth.currentUser;
       if (user) {
+        // Get the application to find the job_id
         const applicationRef = doc(db, 'applications', applicationId);
+        const applicationDoc = await getDoc(applicationRef);
+        const applicationData = applicationDoc.data();
+        
+        // Update the application status to withdrawn
         await updateDoc(applicationRef, {
-          status: 'withdrawn'
+          status: 'withdrawn',
+          withdrawnAt: serverTimestamp() // Add timestamp for when it was withdrawn
         });
+        
+        // Update the job capacity if this job has a capacity field
+        if (applicationData && applicationData.job_id) {
+          const jobRef = doc(db, 'jobs', applicationData.job_id);
+          const jobDoc = await getDoc(jobRef);
+          
+          if (jobDoc.exists()) {
+            const jobData = jobDoc.data();
+            // If the job has a capacity and filledPositions field, update it
+            if (jobData.capacity && jobData.filledPositions) {
+              await updateDoc(jobRef, {
+                filledPositions: Math.max(0, jobData.filledPositions - 1)
+              });
+            }
+          }
+        }
+        
+        // Update the local state
         setApplications(applications.map(app => 
-          app.id === applicationId ? { ...app, status: 'withdrawn' } : app
+          app.id === applicationId ? { ...app, status: 'withdrawn', withdrawnAt: new Date() } : app
         ));
+        
         toast.success("Application withdrawn successfully!");
       }
     } catch (error) {
+      console.error("Error withdrawing application:", error);
       toast.error("Error withdrawing application!");
     }
   };
@@ -177,7 +213,17 @@ const Applications = () => {
       {/* Applications Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredApplications.map(application => (
-          <div key={application.id} className="bg-white rounded-lg shadow-sm p-6">
+        <div 
+        key={application.id} 
+        className={`relative rounded-lg shadow-sm p-6 transition-all duration-300 
+          ${application.status === 'withdrawn' ? 'bg-red-50 opacity-50' : 'bg-white opacity-100'}`}
+      >
+        {/* 🔳 Withdrawn Overlay */}
+        {application.status === 'withdrawn' && (
+          <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-lg z-30">
+            <span className="text-3xl font-semibold text-red-600">Withdrawn</span>
+          </div>
+        )}
             {/* Header */}
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -258,7 +304,13 @@ const Applications = () => {
               </div>
             )}
           </div>
+
+          
         ))}
+
+
+
+        
 
         {filteredApplications.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg col-span-2">
@@ -283,10 +335,7 @@ const Applications = () => {
         )}
 
         {loading && (
-          <div className="flex flex-col items-center justify-center py-12 col-span-2">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading applications...</p>
-          </div>
+          <div className="flex justify-center items-center min-h-[200px]"><LoadingSpinner size="large" text="Loading applications..." /></div>
         )}
       </div>
     </div>

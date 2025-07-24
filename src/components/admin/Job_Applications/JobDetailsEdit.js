@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 // Destructure props correctly
 const JobDetailsEdit = ({ job, setEditMode, onSaveSuccess }) => {
   // Use local state for form data, initialized from the 'job' prop
+  // Update the initial state to include new fields
   const [formData, setFormData] = useState({
     company: '',
     position: '',
@@ -17,10 +18,15 @@ const JobDetailsEdit = ({ job, setEditMode, onSaveSuccess }) => {
     eligibleDepartments: [],
     location: '',
     salary: '',
+    ctc: '', // New field for full-time compensation
     deadline: '',
     interviewDateTime: '',
+    joiningDate: '', // New field for joining date
     genderPreference: 'Any',
-    jobType: '',
+    jobTypes: [], // Changed from jobType to jobTypes array
+    workMode: '', // New field for work mode
+    ppoPportunity: false, // New field for PPO opportunity
+    internshipDuration: '', // New field for internship duration
     experience: '',
     instructions: '',
     skills: [],
@@ -28,8 +34,8 @@ const JobDetailsEdit = ({ job, setEditMode, onSaveSuccess }) => {
     screeningQuestions: [],
     attachments: []
   });
-
-  // Use useEffect to initialize form data when the 'job' prop changes (or on mount)
+  
+  // Update the useEffect to initialize all fields from job data
   useEffect(() => {
     if (job) {
       setFormData({
@@ -43,12 +49,15 @@ const JobDetailsEdit = ({ job, setEditMode, onSaveSuccess }) => {
         eligibleDepartments: Array.isArray(job.eligibleDepartments) ? job.eligibleDepartments : [],
         location: job.location || '',
         salary: job.salary || '',
-        // Format dates for input fields if necessary (e.g., YYYY-MM-DDTHH:mm)
-        // Assuming dates are stored as Firestore Timestamps or Date objects
+        ctc: job.ctc || '',
         deadline: job.deadline ? new Date(job.deadline).toISOString().split('.')[0] : '',
         interviewDateTime: job.interviewDateTime ? new Date(job.interviewDateTime).toISOString().split('.')[0] : '',
+        joiningDate: job.joiningDate ? new Date(job.joiningDate).toISOString().split('.')[0] : '',
         genderPreference: job.genderPreference || 'Any',
-        jobType: job.jobType || '',
+        jobTypes: Array.isArray(job.jobTypes) ? job.jobTypes : [],
+        workMode: job.workMode || '',
+        ppoPportunity: job.ppoPportunity || false,
+        internshipDuration: job.internshipDuration || '',
         experience: job.experience || '',
         instructions: job.instructions || '',
         skills: Array.isArray(job.skills) ? job.skills : [],
@@ -146,103 +155,50 @@ const JobDetailsEdit = ({ job, setEditMode, onSaveSuccess }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Column */}
           <div className="space-y-6">
-            {/* Basic Information */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Basic Information</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                  <input
-                    type="text"
-                    name="company" // Add name attribute
-                    value={formData.company} // Use local state
-                    onChange={handleInputChange} // Use local handler
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Position Title</label>
-                  <input
-                    type="text"
-                    name="position" // Add name attribute
-                    value={formData.position} // Use local state
-                    onChange={handleInputChange} // Use local handler
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Job Description</label>
-                  <textarea
-                    name="description" // Add name attribute
-                    value={formData.description} // Use local state
-                    onChange={handleInputChange} // Use local handler
-                    rows="4"
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  ></textarea>
-                </div>
-              </div>
-            </div>
+            
 
-            {/* Academic Requirements */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Academic Requirements</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Minimum CGPA</label>
-                  <input
-                    type="number"
-                    name="minCGPA" // Add name attribute
-                    value={formData.minCGPA} // Use local state
-                    onChange={handleInputChange} // Use local handler
-                    step="0.01"
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Current Arrears</label>
-                  <input
-                    type="number"
-                    name="maxCurrentArrears" // Add name attribute
-                    value={formData.maxCurrentArrears} // Use local state
-                    onChange={handleInputChange} // Use local handler
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max History Arrears</label>
-                  <input
-                    type="number"
-                    name="maxHistoryArrears" // Add name attribute
-                    value={formData.maxHistoryArrears} // Use local state
-                    onChange={handleInputChange} // Use local handler
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                {/* Add fields for Eligible Batch and Eligible Departments */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Eligible Batch (Comma Separated)</label>
-                  <input
-                    type="text"
-                    name="eligibleBatch"
-                    value={Array.isArray(formData.eligibleBatch) ? formData.eligibleBatch.join(', ') : ''}
-                    onChange={(e) => setFormData({...formData, eligibleBatch: e.target.value.split(',').map(item => item.trim()).filter(item => item)})}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="e.g., 2024, 2025"
-                  />
-                </div>
-                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Eligible Departments (Comma Separated)</label>
-                  <input
-                    type="text"
-                    name="eligibleDepartments"
-                    value={Array.isArray(formData.eligibleDepartments) ? formData.eligibleDepartments.join(', ') : ''}
-                    onChange={(e) => setFormData({...formData, eligibleDepartments: e.target.value.split(',').map(item => item.trim()).filter(item => item)})}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="e.g., CSE, IT, ECE"
-                  />
-                </div>
-              </div>
-            </div>
+
+
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Work Mode</label>
+  <select
+    name="workMode"
+    value={formData.workMode}
+    onChange={handleInputChange}
+    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+  >
+    <option value="">Select Work Mode</option>
+    <option value="On-site">On-site</option>
+    <option value="Remote">Remote</option>
+    <option value="Hybrid">Hybrid</option>
+    <option value="Work from Home">Work from Home</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Eligible Batches</label>
+  <div className="flex flex-wrap gap-2 border p-2 rounded-md max-h-32 overflow-y-auto">
+    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 3 + i).map(year => (
+      <label key={year} className="inline-flex items-center px-3 py-1 border rounded-md text-sm">
+        <input
+          type="checkbox"
+          checked={formData.eligibleBatch.includes(year)}
+          onChange={() => {
+            const newBatch = formData.eligibleBatch.includes(year)
+              ? formData.eligibleBatch.filter(y => y !== year)
+              : [...formData.eligibleBatch, year];
+            setFormData({...formData, eligibleBatch: newBatch});
+          }}
+          className="mr-2"
+        />
+        {year}
+      </label>
+    ))}
+  </div>
+</div>
+
+ 
 
             {/* Required Skills */}
             <div className="bg-gray-50 p-6 rounded-lg">
@@ -344,17 +300,7 @@ const JobDetailsEdit = ({ job, setEditMode, onSaveSuccess }) => {
                     placeholder="e.g., Bangalore, Remote"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Salary/Stipend</label>
-                  <input
-                    type="text"
-                    name="salary" // Add name attribute
-                    value={formData.salary} // Use local state
-                    onChange={handleInputChange} // Use local handler
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="e.g., ₹50,000/month"
-                  />
-                </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
                   <input
@@ -417,6 +363,59 @@ const JobDetailsEdit = ({ job, setEditMode, onSaveSuccess }) => {
                 </div>
               </div>
             </div>
+
+
+
+            <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">CTC (for full-time roles)</label>
+  <input
+    type="text"
+    name="ctc"
+    value={formData.ctc}
+    onChange={handleInputChange}
+    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+    placeholder="e.g., ₹10 LPA"
+  />
+</div>
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Joining Date</label>
+  <input
+    type="date"
+    name="joiningDate"
+    value={formData.joiningDate}
+    onChange={handleInputChange}
+    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+  />
+</div>
+
+{formData.jobTypes.includes('Internship') && (
+  <>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">PPO Opportunity</label>
+      <select
+        name="ppoPportunity"
+        value={formData.ppoPportunity ? 'true' : 'false'}
+        onChange={(e) => setFormData({...formData, ppoPportunity: e.target.value === 'true'})}
+        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+      >
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+      </select>
+    </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Internship Duration</label>
+      <input
+        type="text"
+        name="internshipDuration"
+        value={formData.internshipDuration}
+        onChange={handleInputChange}
+        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        placeholder="e.g., 2 months, Summer 2024"
+      />
+    </div>
+  </>
+)}
 
             {/* Hiring Workflow Rounds */}
             <div className="bg-gray-50 p-6 rounded-lg">

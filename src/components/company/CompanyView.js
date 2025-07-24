@@ -6,6 +6,7 @@ import { auth, db } from '../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Building, LogOut, Briefcase, Users, FileText, BarChart, User } from 'lucide-react';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 const CompanyView = () => {
   const { companyId } = useParams();
@@ -105,11 +106,7 @@ const CompanyView = () => {
   };
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading company data..." /></div>;
   }
   
   if (!company) {

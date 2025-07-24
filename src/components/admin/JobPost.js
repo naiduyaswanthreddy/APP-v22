@@ -25,6 +25,19 @@ const LOCATION_SUGGESTIONS = [
   "Ahmedabad", "Gurgaon", "Noida", "Coimbatore", "Kochi", "Trivandrum"
 ];
 
+// Add this constant for department suggestions
+const DEPARTMENT_SUGGESTIONS = [
+  "Computer Science", "Information Technology", "Electronics & Communication", 
+  "Electrical Engineering", "Mechanical Engineering", "Civil Engineering",
+  "Chemical Engineering", "Biotechnology", "Aerospace Engineering",
+  "Production Engineering", "Industrial Engineering", "Metallurgical Engineering",
+  "Mathematics", "Physics", "Chemistry", "Business Administration", "Commerce"
+];
+
+const AnimatedCard = ({ children }) => (
+  <div className="bg-white/80 rounded-2xl shadow-2xl p-8 mb-8 animate-fade-in border border-blue-100" style={{ minHeight: 400 }}>{children}</div>
+);
+
 const JobPost = () => {
   const locationInputRef = useRef(null);
 
@@ -34,6 +47,9 @@ const JobPost = () => {
     positions: [],
     rounds: []
   });
+  
+  // Add this constant for work mode options inside the component
+  const WORK_MODE_OPTIONS = ["On-site", "Remote", "Hybrid", "Work from Home"];
 
   // Add suggestions fetch effect
   useEffect(() => {
@@ -86,17 +102,22 @@ const JobPost = () => {
     maxHistoryArrears: 0,
     genderPreference: 'any',
     jobTypes: [],
+    workMode: '', // New field for work mode
     skills: [],
     newSkill: '',
     eligibleBatch: [],
+    eligibleDepartments: [], // New field for departments
     location: '',
-    salary: '',
+    ctc: '', // New field for full-time compensation
+    salary: '', // Repurposed for internship stipend
+    ppoPportunity: false, // New field for PPO opportunity
+    internshipDuration: '', // New field for internship duration
     deadline: '',
     interviewDateTime: '',
+    joiningDate: '', // New field for joining date
     instructions: '',
     rounds: [{ name: '' }],
     screeningQuestions: [{ question: '', type: 'text', options: [] }],
-    // Add these new fields
     attachments: [],
     newAttachmentName: '',
     newAttachmentLink: ''
@@ -114,6 +135,16 @@ const JobPost = () => {
       jobTypes: prev.jobTypes.includes(type) 
         ? prev.jobTypes.filter(t => t !== type)
         : [...prev.jobTypes, type]
+    }));
+  };
+
+  // Add this handler inside the component
+  const handleDepartmentChange = (department) => {
+    setJobForm(prev => ({
+      ...prev,
+      eligibleDepartments: prev.eligibleDepartments.includes(department) 
+        ? prev.eligibleDepartments.filter(d => d !== department)
+        : [...prev.eligibleDepartments, department]
     }));
   };
 
@@ -209,7 +240,7 @@ const JobPost = () => {
       
       toast.success('Job posted successfully with notifications!');
       
-      // Reset form
+      // Reset form with explicit empty arrays
       setJobForm({
         company: '',
         position: '',
@@ -217,17 +248,23 @@ const JobPost = () => {
         maxCurrentArrears: 0,
         maxHistoryArrears: 0,
         genderPreference: 'any',
-        jobTypes: [],
+        jobTypes: [], // Ensure this is always an empty array
+        workMode: '',
         instructions: '',
         rounds: [{ name: '' }],
         screeningQuestions: [{ question: '', type: 'text', options: [] }],
         skills: [],
         newSkill: '',
         eligibleBatch: [],
+        eligibleDepartments: [], // Ensure this is always an empty array
         location: '',
         salary: '',
+        ctc: '',
+        ppoPportunity: false,
+        internshipDuration: '',
         deadline: '',
         interviewDateTime: '',
+        joiningDate: '',
         attachments: [],
         newAttachmentName: '',
         newAttachmentLink: ''
@@ -244,12 +281,13 @@ const JobPost = () => {
       <h2 className="text-3xl font-bold text-gray-800 mb-8 border-b pb-4">Post New Job Opportunity</h2>
       
       <div className="space-y-8">
-        {/* Basic Info - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+        {/* 1. Basic Job Information - Card Style */}
+        <AnimatedCard>
           <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-            Basic Information
+            1. Basic Job Information
           </h3>
           <div className="space-y-4">
+            {/* Company Name */}
             <div className="relative">
               <input
                 type="text"
@@ -266,10 +304,11 @@ const JobPost = () => {
               </datalist>
             </div>
             
+            {/* Position Title */}
             <div className="relative">
               <input
                 type="text"
-                placeholder="Position"
+                placeholder="Position Title"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 value={jobForm.position}
                 onChange={e => setJobForm({...jobForm, position: e.target.value})}
@@ -282,21 +321,126 @@ const JobPost = () => {
               </datalist>
             </div>
             
+            {/* Job Description */}
             <textarea
-              placeholder="Job Description"
+              placeholder="Job Description (Rich text / Markdown support)"
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               rows="4"
               value={jobForm.description}
               onChange={e => setJobForm({...jobForm, description: e.target.value})}
             />
+            
+            {/* Job Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {jobTypeOptions.map(type => (
+                  <label key={type} className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors duration-200 ${jobForm.jobTypes.includes(type) ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-100'}`}>
+                    <input
+                      type="checkbox"
+                      checked={jobForm.jobTypes.includes(type)}
+                      onChange={() => handleJobTypeChange(type)}
+                      className="rounded text-blue-600"
+                    />
+                    <span>{type}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            {/* Work Mode */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Work Mode</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {WORK_MODE_OPTIONS.map(mode => (
+                  <label key={mode} className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors duration-200 ${jobForm.workMode === mode ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-100'}`}>
+                    <input
+                      type="radio"
+                      checked={jobForm.workMode === mode}
+                      onChange={() => setJobForm({...jobForm, workMode: mode})}
+                      className="rounded-full text-blue-600"
+                      name="workMode"
+                    />
+                    <span>{mode}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Location(s)</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  value={jobForm.location}
+                  onChange={e => setJobForm({...jobForm, location: e.target.value})}
+                  placeholder="e.g., Bangalore, Remote"
+                  list="location-suggestions"
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">📍</span>
+                <datalist id="location-suggestions" className="bg-white w-full border rounded-lg shadow-lg">
+                  {LOCATION_SUGGESTIONS.map((location, index) => (
+                    <option key={index} value={location} className="p-2 hover:bg-gray-100 cursor-pointer" />
+                  ))}
+                </datalist>
+              </div>
+            </div>
           </div>
-        </div>
-    
-        {/* Academic Requirements - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-        Academic Requirements</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        </AnimatedCard>
+      
+        {/* 2. Academic & Eligibility Criteria - Card Style */}
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            2. Academic & Eligibility Criteria
+          </h3>
+          
+          {/* Eligible Batch */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Eligible Batches ({new Date().getFullYear() - 3}–{new Date().getFullYear() + 6})
+            </label>
+            <div className="flex flex-wrap gap-3 max-h-48 overflow-y-auto p-2">
+              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 3 + i).map(year => (
+                <label key={year} className="inline-flex items-center px-4 py-2 border rounded-full cursor-pointer transition-colors duration-200 ease-in-out hover:bg-gray-100">
+                  <input
+                    type="checkbox"
+                    checked={jobForm.eligibleBatch.includes(year)}
+                    onChange={() => {
+                      const newBatch = jobForm.eligibleBatch.includes(year)
+                        ? jobForm.eligibleBatch.filter(y => y !== year)
+                        : [...jobForm.eligibleBatch, year];
+                      setJobForm({...jobForm, eligibleBatch: newBatch});
+                    }}
+                    className="mr-2 rounded"
+                  />
+                  <span>{year}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          
+          {/* Eligible Departments */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Eligible Departments (optional multi-select)</label>
+            <div className="flex flex-wrap gap-3 max-h-48 overflow-y-auto p-2">
+              {DEPARTMENT_SUGGESTIONS.map(department => (
+                <label key={department} className="inline-flex items-center px-4 py-2 border rounded-full cursor-pointer transition-colors duration-200 ease-in-out hover:bg-gray-100">
+                  <input
+                    type="checkbox"
+                    checked={jobForm.eligibleDepartments.includes(department)}
+                    onChange={() => handleDepartmentChange(department)}
+                    className="mr-2 rounded"
+                  />
+                  <span>{department}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          
+          {/* Academic Requirements */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Minimum CGPA</label>
               <input
@@ -330,62 +474,106 @@ const JobPost = () => {
               />
             </div>
           </div>
-        </div>
-    
-        {/* Job Details - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-            Job Details
-          </h3>
           
-          {/* Location and Salary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-              <div className="relative">
+          {/* Gender Preference */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gender Preference</label>
+            <select
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              value={jobForm.genderPreference}
+              onChange={e => setJobForm({...jobForm, genderPreference: e.target.value})}
+            >
+              <option value="any">Any</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer_not_to_say">Prefer not to say</option>
+            </select>
+          </div>
+          
+          {/* Conditional fields for internships */}
+          {Array.isArray(jobForm.jobTypes) && jobForm.jobTypes.includes('Internship') && (            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">PPO Opportunity?</label>
+                <div className="flex gap-4">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      name="ppoPportunity"
+                      checked={jobForm.ppoPportunity === true}
+                      onChange={() => setJobForm({...jobForm, ppoPportunity: true})}
+                      className="mr-2"
+                    />
+                    <span>Yes</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      name="ppoPportunity"
+                      checked={jobForm.ppoPportunity === false}
+                      onChange={() => setJobForm({...jobForm, ppoPportunity: false})}
+                      className="mr-2"
+                    />
+                    <span>No</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Internship Duration</label>
                 <input
                   type="text"
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                  value={jobForm.location}
-                  onChange={e => setJobForm({...jobForm, location: e.target.value})}
-                  placeholder="e.g., Bangalore, Remote"
-                  list="location-suggestions"
+                  placeholder="e.g., 2 months, Summer 2024"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  value={jobForm.internshipDuration}
+                  onChange={e => setJobForm({...jobForm, internshipDuration: e.target.value})}
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">📍</span>
-                <datalist id="location-suggestions" className="bg-white w-full border rounded-lg shadow-lg">
-                  {LOCATION_SUGGESTIONS.map((location, index) => (
-                    <option key={index} value={location} className="p-2 hover:bg-gray-100 cursor-pointer" />
-                  ))}
-                </datalist>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {['Remote', 'Hybrid', 'On-site'].map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setJobForm({...jobForm, location: type})}
-                    className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full transition"
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
+            </>
+          )}
+        </AnimatedCard>
+      
+        {/* 3. Compensation Details - Card Style */}
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            3. Compensation Details
+          </h3>
+          
+          {/* Conditional compensation fields based on job type */}
+          {jobForm.jobTypes.includes('Full-time') && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTC (for full-time roles)</label>
+              <input
+                type="text"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                value={jobForm.ctc}
+                onChange={e => setJobForm({...jobForm, ctc: e.target.value})}
+                placeholder="e.g., ₹10 LPA"
+              />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salary/Stipend</label>
+          )}
+          
+          {jobForm.jobTypes.includes('Internship') && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Stipend (for internships)</label>
               <input
                 type="text"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 value={jobForm.salary}
                 onChange={e => setJobForm({...jobForm, salary: e.target.value})}
-                placeholder="e.g., ₹50,000/month"
+                placeholder="e.g., ₹25,000/month"
               />
             </div>
-          </div>
-    
-          {/* Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          )}
+        </AnimatedCard>
+      
+        {/* 4. Important Dates - Card Style */}
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            4. Important Dates
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
               <input
@@ -404,69 +592,23 @@ const JobPost = () => {
                 onChange={e => setJobForm({...jobForm, interviewDateTime: e.target.value})}
               />
             </div>
-          </div>
-    
-          {/* Gender Preference */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Gender Preference</label>
-            <select
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              value={jobForm.genderPreference}
-              onChange={e => setJobForm({...jobForm, genderPreference: e.target.value})}
-            >
-              <option value="any">Any</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-    
-          {/* Eligible Batch */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Eligible Batch</label>
-            <div className="flex flex-wrap gap-3 max-h-48 overflow-y-auto p-2">
-              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(year => (
-                <label key={year} className="inline-flex items-center px-4 py-2 border rounded-full cursor-pointer transition-colors duration-200 ease-in-out hover:bg-gray-100">
-                  <input
-                    type="checkbox"
-                    checked={jobForm.eligibleBatch.includes(year)}
-                    onChange={() => {
-                      const newBatch = jobForm.eligibleBatch.includes(year)
-                        ? jobForm.eligibleBatch.filter(y => y !== year)
-                        : [...jobForm.eligibleBatch, year];
-                      setJobForm({...jobForm, eligibleBatch: newBatch});
-                    }}
-                    className="mr-2 rounded"
-                  />
-                  <span>{year}</span>
-                </label>
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Joining Date (Optional)</label>
+              <input
+                type="date"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                value={jobForm.joiningDate}
+                onChange={e => setJobForm({...jobForm, joiningDate: e.target.value})}
+              />
             </div>
           </div>
-        </div>
-    
-        {/* Job Type - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-           <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-        Job Type</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {jobTypeOptions.map(type => (
-              <label key={type} className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors duration-200 ${jobForm.jobTypes.includes(type) ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-100'}`}>
-                <input
-                  type="checkbox"
-                  checked={jobForm.jobTypes.includes(type)}
-                  onChange={() => handleJobTypeChange(type)}
-                  className="rounded text-blue-600"
-                />
-                <span>{type}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-    
-        {/* Skills - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-        Required Skills</h3>
+        </AnimatedCard>
+      
+        {/* 5. Required Skills - Card Style */}
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            5. Required Skills
+          </h3>
           <div className="flex gap-2 mb-4">
             <input
               type="text"
@@ -505,12 +647,13 @@ const JobPost = () => {
               </span>
             ))}
           </div>
-        </div>
-    
+        </AnimatedCard>
+      
         {/* Instructions - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-        Instructions to Applicants</h3>
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            Instructions to Applicants
+          </h3>
           <textarea
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-gray-300 transition"
             rows="4"
@@ -518,12 +661,13 @@ const JobPost = () => {
             onChange={e => setJobForm({...jobForm, instructions: e.target.value})}
             placeholder="Enter instructions for applicants..."
           />
-        </div>
-    
+        </AnimatedCard>
+      
         {/* Hiring Rounds - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-        Hiring Workflow Rounds</h3>
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            Hiring Workflow Rounds
+          </h3>
           <div className="space-y-3 mb-4">
             {jobForm.rounds.map((round, index) => (
               <div key={index} className="flex gap-2 items-center">
@@ -568,12 +712,13 @@ const JobPost = () => {
           >
             <span>+</span> Add Round
           </button>
-        </div>
-    
+        </AnimatedCard>
+      
         {/* Screening Questions - Card Style */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-        Screening Questions</h3>
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            Screening Questions
+          </h3>
           <div className="space-y-4 mb-4">
             {jobForm.screeningQuestions.map((q, index) => (
               <div key={index} className="p-4 border border-gray-200 rounded-lg">
@@ -626,12 +771,13 @@ const JobPost = () => {
           >
             <span>+</span> Add Question
           </button>
-        </div>
-    
-        {/* Add this section before the Submit Button */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-        File Attachments</h3>
+        </AnimatedCard>
+      
+        {/* File Attachments - Card Style */}
+        <AnimatedCard>
+          <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+            File Attachments
+          </h3>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
@@ -669,7 +815,7 @@ const JobPost = () => {
             >
               Add File
             </button>
-    
+      
             {jobForm.attachments.length > 0 && (
               <div className="mt-4">
                 <h4 className="font-medium mb-2">Added Files:</h4>
@@ -703,8 +849,8 @@ const JobPost = () => {
               </div>
             )}
           </div>
-        </div>
-    
+        </AnimatedCard>
+      
         {/* Submit Button */}
         <button
           onClick={handleSubmit}
@@ -718,3 +864,4 @@ const JobPost = () => {
 };
 
 export default JobPost;
+

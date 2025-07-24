@@ -172,3 +172,18 @@ export const createSystemAlertNotification = async (title, message, actionLink =
     actionLink
   });
 };
+
+/**
+ * Creates a chat message notification for students
+ */
+export const createChatMessageNotification = async (recipientId, jobData, senderName, message) => {
+  return createNotification({
+    title: `New message in ${jobData.position} chat`,
+    message: `${senderName}: ${message.length > 50 ? message.substring(0, 50) + '...' : message}`,
+    type: 'chat_message',
+    recipientId: recipientId,
+    isGeneral: false,
+    recipientType: 'student',
+    actionLink: `/student/jobpost` // This will take them to the job posts page
+  });
+};

@@ -14,6 +14,7 @@ import {
   Bell,
   LogOut 
 } from 'lucide-react';
+import LoadingSpinner from './components/ui/LoadingSpinner';
 
 const Student = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -49,7 +50,7 @@ const Student = () => {
     };
   }, []);
 
-  if (!userData) return <p>Loading profile...</p>;
+  if (!userData) return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading profile..." /></div>;
 
   const menuItems = [
     { 

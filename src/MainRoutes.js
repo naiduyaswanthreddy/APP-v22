@@ -4,12 +4,13 @@ import AuthHandler from "./AuthHandler";
 import Admin from './Admin';
 import Resources from './components/admin/Resources';
 import JobPost from './components/admin/JobPost';
-import ManageApplications from './components/admin/ManageApplications';
+import ManageApplications from './components/admin/Job_Applications/ManageApplications'; // Fixed path
 import Coding from './components/admin/Coding';
 import Students from './components/admin/Students';
 import Profile from './components/admin/Profile';
 import Gallery from './components/admin/Gallery';
 import JobApplications from './components/admin/JobApplications';
+import AdminChat from './components/admin/AdminChat';
 
 // Import new company-related components
 import Companies from './components/admin/Companies';
@@ -32,6 +33,7 @@ function MainRoutes() {
         <Route path="profile" element={<Profile />} />
         <Route path="gallery" element={<Gallery />} />
         <Route path="job-applications/:jobId" element={<JobApplications />} />
+        <Route path="job-chat/:jobId" element={<AdminChat />} />
         
         {/* Add new company routes */}
         <Route path="companies" element={<Companies />} />

@@ -1,24 +1,48 @@
-import React, { useEffect, useState } from "react";
-import { auth, db } from "../../firebase";
+import React, { useEffect, useState, useMemo } from "react";
+import { auth, db } from "../../../firebase";
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, Link } from "react-router-dom";
 import { 
   User, 
-  Briefcase,  Award, 
+  Briefcase, Award, 
   Book, 
   Download,
+  BarChart2, // Added for Analytics tab
+  FileText, // Added for Applications tab
+  MessageSquare, // Added for Notes tab
 } from "lucide-react";
-import LoadingSpinner from '../ui/LoadingSpinner';
+
+// Import Chart.js components
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title } from 'chart.js';
+
+
 
 // Import the individual profile components
 import ProfileBasic from "./ProfileBasic";
 import ProfileAcademics from "./ProfileAcademics";
 import ProfileCareer from "./ProfileCareer";
 import ProfileExcellence from "./ProfileExcellence";
+import ProfileAnalytics from "./ProfileAnalytics";
+import ProfileApplications from "./ProfileApplications";
+import ProfileNotes from "./ProfileNotes";
 
-const Profile = () => {
+
+// Register ChartJS components
+ChartJS.register(
+  ArcElement, 
+  Tooltip, 
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title
+);
+
+const Profile = ({ studentData, isAdminView }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("basic");
   const [userData, setUserData] = useState(null);
@@ -26,8 +50,14 @@ const Profile = () => {
   const [completionPercentage, setCompletionPercentage] = useState(0);
   
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    if (isAdminView && studentData && !userData) {
+      setUserData(studentData);
+      calculateCompletionPercentage(studentData);
+      setLoading(false);
+    } else if (!userData) {
+      fetchUserProfile();
+    }
+  }, [isAdminView, studentData, userData]);
 
   const fetchUserProfile = async () => {
     try {
@@ -113,8 +143,21 @@ const Profile = () => {
     return new Blob(['PDF content'], { type: 'application/pdf' });
   };
 
+  const memoizedUserData = useMemo(() => userData, [userData]);
+
+  console.log("Profile.js rendered", { userData });
+
+  const handleUserDataChange = (newData) => {
+    console.log("Updating userData in parent:", newData);
+    setUserData(newData);
+  };
+
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading profile..." /></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
   }
 
   return (
@@ -212,6 +255,33 @@ const Profile = () => {
             <Award size={16} className="mr-2" />
             <span>Excellence</span>
           </button>
+          
+          {/* New Analytics Tab */}
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "analytics" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+          >
+            <BarChart2 size={16} className="mr-2" />
+            <span>Analytics</span>
+          </button>
+          
+          {/* New Applications Tab */}
+          <button
+            onClick={() => setActiveTab("applications")}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "applications" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+          >
+            <FileText size={16} className="mr-2" />
+            <span>Applications</span>
+          </button>
+          
+          {/* New Notes Tab */}
+          <button
+            onClick={() => setActiveTab("notes")}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "notes" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+          >
+            <MessageSquare size={16} className="mr-2" />
+            <span>Notes</span>
+          </button>
         </nav>
       </div>
       
@@ -220,28 +290,49 @@ const Profile = () => {
         {/* Basic Info Tab */}
         {activeTab === "basic" && (
           <div className="p-0">
-            <ProfileBasic userData={userData || {}} onUserDataChange={setUserData} />
+            <ProfileBasic userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
         {/* Academics Tab */}
         {activeTab === "academics" && (
           <div className="p-0">
-            <ProfileAcademics />
+            <ProfileAcademics userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
         {/* Career Tab */}
         {activeTab === "career" && (
           <div className="p-0">
-            <ProfileCareer />
+            <ProfileCareer userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
         {/* Excellence Tab */}
         {activeTab === "excellence" && (
           <div className="p-0">
-            <ProfileExcellence />
+            <ProfileExcellence userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
+          </div>
+        )}
+        
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && (
+          <div className="p-0">
+            <ProfileAnalytics userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
+          </div>
+        )}
+        
+        {/* Applications Tab */}
+        {activeTab === "applications" && (
+          <div className="p-0">
+            <ProfileApplications userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
+          </div>
+        )}
+        
+        {/* Notes Tab */}
+        {activeTab === "notes" && (
+          <div className="p-0">
+            <ProfileNotes userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
       </div>
@@ -278,6 +369,30 @@ const Profile = () => {
         >
           <Award size={20} />
           <span className="text-xs mt-1">Excellence</span>
+        </button>
+        
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={`flex flex-col items-center p-2 ${activeTab === "analytics" ? "text-indigo-600" : "text-gray-500"}`}
+        >
+          <BarChart2 size={20} />
+          <span className="text-xs mt-1">Analytics</span>
+        </button>
+        
+        <button
+          onClick={() => setActiveTab("applications")}
+          className={`flex flex-col items-center p-2 ${activeTab === "applications" ? "text-indigo-600" : "text-gray-500"}`}
+        >
+          <FileText size={20} />
+          <span className="text-xs mt-1">Apps</span>
+        </button>
+        
+        <button
+          onClick={() => setActiveTab("notes")}
+          className={`flex flex-col items-center p-2 ${activeTab === "notes" ? "text-indigo-600" : "text-gray-500"}`}
+        >
+          <MessageSquare size={20} />
+          <span className="text-xs mt-1">Notes</span>
         </button>
       </div>
     </div>

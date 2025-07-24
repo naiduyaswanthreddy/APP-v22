@@ -4,6 +4,7 @@ import { db, auth } from '../../firebase';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Bell, Briefcase, CheckCircle, AlertCircle, Calendar, FileText, MessageSquare } from 'lucide-react';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 // Notification icon component based on notification type
 const NotificationIcon = ({ type }) => {
@@ -206,11 +207,7 @@ const Notifications = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[80vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading notifications..." /></div>;
   }
 
   return (

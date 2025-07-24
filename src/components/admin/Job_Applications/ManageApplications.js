@@ -7,6 +7,9 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from 'react-router-dom';
 // Add these imports at the top
 import { addDoc, serverTimestamp } from 'firebase/firestore';
+import AdminChat from '../AdminChat'; // Import the AdminChat component
+import LoadingSpinner from '../../ui/LoadingSpinner';
+import NoData from '../../ui/NoData';
 
 // Custom toast component for truncating long messages
 const CustomToast = ({ message }) => {
@@ -45,7 +48,10 @@ const ManageApplications = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('deadline');
-  const [shareLinks, setShareLinks] = useState({}); // Add this state here
+  const [shareLinks, setShareLinks] = useState({});
+  // Add state for chat modal
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
 
   // Add the generateShareLink function here
   const generateShareLink = async (jobId, company) => {
@@ -82,6 +88,13 @@ const ManageApplications = () => {
     } else {
       showToast('Invalid job ID', 'error');
     }
+  };
+
+  // Add function to handle chat button click
+  // Modify the handleChatClick function
+  const handleChatClick = (jobId) => {
+    setSelectedJobId(jobId);
+    setShowChatModal(true); // Changed to match the state variable name
   };
 
   const handleDeleteJob = async (jobId) => {
@@ -200,122 +213,152 @@ const ManageApplications = () => {
   return (
     <div className="p-8 max-w-7xl mx-auto bg-gray-50 min-h-screen">
       <ToastContainer />
-      <div className="space-y-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Job Applications Dashboard
-              </h1>
-            </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 bg-white border-2 border-gray-200 rounded-lg shadow-sm 
-                hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 
-                transition-all duration-200 cursor-pointer"
-            >
-              <option value="deadline">Sort by Deadline</option>
-              <option value="applicants">Sort by Applicants</option>
-              <option value="shortlisted">Sort by Shortlisted</option>
-            </select>
-          </div>
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex justify-center items-center min-h-[300px]">
+          <LoadingSpinner size="large" text="Loading jobs..." />
         </div>
+      ) : sortedJobs.length === 0 ? (
+        <NoData text="No jobs found." />
+      ) : (
+        <div className="space-y-0 ">
+          {/* Header Section */}
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="flex items-center space-x-3">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Job Applications Dashboard
+                </h1>
+              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2 bg-white border-2 border-gray-200 rounded-lg shadow-sm 
+                  hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 
+                  transition-all duration-200 cursor-pointer"
+              >
+                <option value="deadline">Sort by Deadline</option>
+                <option value="applicants">Sort by Applicants</option>
+                <option value="shortlisted">Sort by Shortlisted</option>
+              </select>
+            </div>
+          </div>
 
-        {/* Table Section */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-teal-100">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Company</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Position</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 uppercase tracking-wider">Applications Overview</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Deadline</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {sortedJobs.map(job => (
-                  <tr key={job.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <span className="text-lg font-semibold text-gray-900">{job.company}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-gray-600">{job.position}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center gap-4">
-                        <div className="text-center">
-                          <div className="text-lg font-semibold">{job.stats.total}</div>
-                          <div className="text-sm text-gray-500">Total</div>
+          {/* Chat Modal */}
+          {showChatModal && selectedJobId && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg w-[70%] h-[88%] overflow-hidden">
+                <div className="p-2 flex justify-between items-center border-b">
+                  <h2 className="text-lg font-semibold">Chat with Applicants</h2>
+                  <button 
+                    onClick={() => setShowChatModal(false)}
+                    className="p-1 rounded hover:bg-gray-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <AdminChat 
+                  jobId={selectedJobId} 
+                  onClose={() => setShowChatModal(false)} 
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Table Section */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-teal-100">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Company</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Position</th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 uppercase tracking-wider">Applications Overview</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Deadline</th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {sortedJobs.map(job => (
+                    <tr key={job.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <span className="text-lg font-semibold text-gray-900">{job.company}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-600">{job.position}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center gap-4">
+                          <div className="text-center">
+                            <div className="text-lg font-semibold">{job.stats.total}</div>
+                            <div className="text-sm text-gray-500">Total</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-semibold text-green-600">{job.stats.shortlisted}</div>
+                            <div className="text-sm text-gray-500">Shortlisted</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-semibold text-red-600">{job.stats.rejected}</div>
+                            <div className="text-sm text-gray-500">Rejected</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-semibold text-yellow-600">{job.stats.pending}</div>
+                            <div className="text-sm text-gray-500">Pending</div>
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-green-600">{job.stats.shortlisted}</div>
-                          <div className="text-sm text-gray-500">Shortlisted</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-red-600">{job.stats.rejected}</div>
-                          <div className="text-sm text-gray-500">Rejected</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-yellow-600">{job.stats.pending}</div>
-                          <div className="text-sm text-gray-500">Pending</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {job.deadline}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleViewApplications(job.id)}
-                          className="px-3 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                        >
-                          👁 View
-                        </button>
-                        {/* <button
-                          onClick={() => generateShareLink(job.id, job.company)}
-                          className="px-3 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100"
-                        >
-                          🔗 Share
-                        </button> */}
-                        <button
-                          onClick={() => handleDeleteJob(job.id)}
-                          className="px-3 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                        >
-                          🗑 Delete
-                        </button>
-                      </div>
-                      {shareLinks[job.id] && (
-                        <div className="absolute mt-2 p-2 bg-white rounded shadow-lg border border-gray-200">
-                          <input
-                            type="text"
-                            value={shareLinks[job.id]}
-                            readOnly
-                            className="w-full p-1 border rounded text-sm"
-                          />
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {job.deadline}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center gap-2">
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(shareLinks[job.id]);
-                              toast.success('Link copied!');
-                            }}
-                            className="mt-1 w-full px-2 py-1 bg-blue-50 text-blue-600 rounded text-sm hover:bg-blue-100"
+                            onClick={() => handleViewApplications(job.id)}
+                            className="px-3 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
                           >
-                            Copy Link
+                            👁 View
+                          </button>
+                          <button
+                            onClick={() => handleChatClick(job.id)}
+                            className="px-3 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100"
+                          >
+                            💬 Chat
+                          </button>
+                          <button
+                            onClick={() => handleDeleteJob(job.id)}
+                            className="px-3 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                          >
+                            🗑 Delete
                           </button>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {shareLinks[job.id] && (
+                          <div className="absolute mt-2 p-2 bg-white rounded shadow-lg border border-gray-200">
+                            <input
+                              type="text"
+                              value={shareLinks[job.id]}
+                              readOnly
+                              className="w-full p-1 border rounded text-sm"
+                            />
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(shareLinks[job.id]);
+                                toast.success('Link copied!');
+                              }}
+                              className="mt-1 w-full px-2 py-1 bg-blue-50 text-blue-600 rounded text-sm hover:bg-blue-100"
+                            >
+                              Copy Link
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,9 @@
 import React, { useState,useRef , useEffect } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore'; // Add these imports
 import { db } from '../../../firebase'; // Add this import
+import { FileX } from 'lucide-react';
+import LoadingSpinner from '../../ui/LoadingSpinner';
+import NoData from '../../ui/NoData';
 
 // Add this new component for truncated feedback display
 const TruncatedFeedback = ({ text }) => {
@@ -304,8 +307,19 @@ const ApplicationsTable = ({
   };
 
 
+
+
+  // Modify the return statement to handle loading and empty states
   return (
     <div className="mt-8 flex flex-col h-[calc(100vh-300px)]">
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <LoadingSpinner size="large" text="Loading applications..." />
+        </div>
+      ) : filteredApplications.length === 0 ? (
+        <NoData text="No applications found." />
+      ) : (
       <div className="overflow-x-auto w-full" style={{ maxWidth: '100%', position: 'relative', zIndex: 1 }}>
         <div className="inline-block min-w-full align-middle">
           <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
@@ -604,6 +618,7 @@ const ApplicationsTable = ({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

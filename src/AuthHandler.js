@@ -31,6 +31,7 @@ import AdminGallery from "./components/admin/Gallery";
 import ManageApplications from './components/admin/Job_Applications/ManageApplications';
 import JobApplications from './components/admin/Job_Applications/JobApplications';
 import Students from "./components/admin/Students";
+import AdminChat from "./components/admin/AdminChat"; // Add this import
 
 // Add import for Notifications
 import AdminNotifications from "./components/admin/Notifications";
@@ -125,6 +126,7 @@ function AuthHandler() {
         <Route path="profile" element={<AdminProfile />} />
         <Route path="gallery" element={<AdminGallery />} />
         <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="chat" element={<AdminChat />} /> {/* Add this line */}
         
         {/* Add the missing company routes */}
         <Route path="companies" element={<Companies />} />
