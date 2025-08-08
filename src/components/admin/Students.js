@@ -5,6 +5,8 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // Replace StudentDetailsModal import with Profile import
 import Profile from './Student_Profile/Profile';
+import Loader from '../../loading'; // Add this import at the top
+
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -147,8 +149,8 @@ const Students = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="fixed top-0 left-[20%] right-0 bottom-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50">
+        <Loader />
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">

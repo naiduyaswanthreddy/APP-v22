@@ -4,7 +4,6 @@ import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, serverT
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Remove role state and fetchUserRole
 const AdminResources = () => {
   const [resources, setResources] = useState([]);
   const [title, setTitle] = useState("");
@@ -14,11 +13,62 @@ const AdminResources = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
   const [editingResource, setEditingResource] = useState(null);
-  const [role, setRole] = useState("");
-  
-  const predefinedCategories = [
-    "AI/ML", "Web Development", "UI/UX", "Data Analyst", "Cloud Computing", "Programming Languages"
-  ];
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetchResources();
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "resource_categories"));
+      const fetchedCategories = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name
+      }));
+      setCategories(fetchedCategories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Failed to load categories");
+    }
+  };
+
+  const addCategory = async () => {
+    if (!newCategory.trim()) return;
+    
+    try {
+      const categoryExists = categories.some(cat => cat.name.toLowerCase() === newCategory.trim().toLowerCase());
+      if (categoryExists) {
+        toast.error("Category already exists!");
+        return;
+      }
+
+      await addDoc(collection(db, "resource_categories"), {
+        name: newCategory.trim(),
+        createdAt: serverTimestamp()
+      });
+      setNewCategory("");
+      fetchCategories();
+      toast.success("Category added successfully!");
+    } catch (error) {
+      console.error("Error adding category:", error);
+      toast.error("Failed to add category");
+    }
+  };
+
+  const deleteCategory = async (categoryId) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      try {
+        await deleteDoc(doc(db, "resource_categories", categoryId));
+        fetchCategories();
+        toast.success("Category deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting category:", error);
+        toast.error("Failed to delete category");
+      }
+    }
+  };
 
   const fetchResources = async () => {
     try {
@@ -119,13 +169,6 @@ const AdminResources = () => {
     });
   };
 
-  const addCategory = () => {
-    if (newCategory.trim() && !predefinedCategories.includes(newCategory.trim())) {
-      setSelectedCategories([...selectedCategories, newCategory.trim()]);
-      setNewCategory("");
-    }
-  };
-
   return (
     <div className="p-0 space-y-0">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
@@ -135,7 +178,40 @@ const AdminResources = () => {
           <input type="text" placeholder="Search..." className="border p-2 rounded" />
         </div>
 
-        {/* Remove role check */}
+        {/* Category Management Section */}
+        {/* <div className="p-4 bg-white rounded-lg shadow mb-4">
+          <h3 className="text-lg font-semibold mb-2">Manage Categories</h3>
+          <div className="flex items-center mb-4">
+            <input
+              type="text"
+              placeholder="New category name"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="block w-full p-2 border rounded"
+            />
+            <button 
+              onClick={addCategory} 
+              className="px-4 py-2 bg-blue-600 text-white rounded ml-2"
+            >
+              Add Category
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {categories.map(category => (
+              <div key={category.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                <span>{category.name}</span>
+                <button
+                  onClick={() => deleteCategory(category.id)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </div> */}
+
+        {/* Resource Form */}
         <div className="p-4 bg-white rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-2">
             {editingResource ? "Edit Resource" : "Add Resource"}
@@ -169,19 +245,19 @@ const AdminResources = () => {
           />
           <div className="mb-2">
             <h4 className="font-semibold">Categories</h4>
-            {predefinedCategories.map((category) => (
-              <label key={category} className="mr-2">
+            {categories.map((category) => (
+              <label key={category.id} className="mr-2">
                 <input
                   type="checkbox"
-                  checked={selectedCategories.includes(category)}
+                  checked={selectedCategories.includes(category.name)}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedCategories([...selectedCategories, category]);
+                      setSelectedCategories([...selectedCategories, category.name]);
                     } else {
-                      setSelectedCategories(selectedCategories.filter(c => c !== category));
+                      setSelectedCategories(selectedCategories.filter(c => c !== category.name));
                     }
                   }}
-                /> {category}
+                /> {category.name}
               </label>
             ))}
           </div>

@@ -10,7 +10,8 @@ import {
   User, 
   Image, 
   Bell,
-  Building
+  Building,
+  Calendar // Add Calendar icon import
 } from 'lucide-react';
 
 const AdminSidebar = () => {
@@ -23,6 +24,7 @@ const AdminSidebar = () => {
     { path: '/admin/manage-applications', Icon: FileText, label: 'Manage Applications' },
     { path: '/admin/students', Icon: Users, label: 'Students' },
     { path: '/admin/companies', Icon: Building, label: 'Companies' },
+    { path: '/admin/calendar', Icon: Calendar, label: 'Calendar' }, // Add Calendar menu item
     { path: '/admin/coding', Icon: Code, label: 'Coding' },
     { path: '/admin/profile', Icon: User, label: 'Profile' },
     { path: '/admin/gallery', Icon: Image, label: 'Gallery' },

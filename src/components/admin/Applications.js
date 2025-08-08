@@ -4,6 +4,10 @@ import { db } from '../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from 'react-router-dom';
+import Loader from '../../loading'; // Add this import at the top
+
+
+// Add this import at the top of the file
 
 const Coding = () => {
   const navigate = useNavigate();
@@ -91,7 +95,9 @@ const Coding = () => {
 
   return (
     <div className="p-6">
-      <ToastContainer />
+            <div className="fixed top-0 left-[20%] right-0 bottom-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50">
+        <Loader />
+        </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Job Applications Management</h1>
         <select
@@ -106,10 +112,9 @@ const Coding = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading jobs...</p>
-        </div>
+              <div className="fixed top-0 left-[20%] right-0 bottom-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50">
+              <Loader />
+              </div>
       ) : sortedJobs.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg shadow-sm">
           <div className="text-6xl mb-4">🔍</div>

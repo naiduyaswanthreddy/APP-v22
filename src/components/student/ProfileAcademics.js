@@ -5,9 +5,9 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, Link } from "react-router-dom";
 import { 
-   Check,  Target, FileText, 
+  Check, Target, FileText, 
   Book, Clipboard, 
-   Download, Eye, Trash2, PlusCircle
+  Download, Eye, Trash2, PlusCircle
 } from "lucide-react";
 
 // Import Chart.js for CGPA trend chart
@@ -39,7 +39,6 @@ const ProfileAcademics = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("academics");
   const [userData, setUserData] = useState({
-    // Academic Info
     cgpa: "",
     skills: "",
     academicInfo: "",
@@ -49,11 +48,7 @@ const ProfileAcademics = () => {
     academicAttendance: "0",
     tpAttendance: "0",
     academicRemarks: "",
-    
-    // Add this line to initialize semesterData as an empty array
     semesterData: [],
-    
-    // Stats
     eligibleJobs: 0,
     appliedJobs: 0,
     shortlistedJobs: 0,
@@ -61,21 +56,15 @@ const ProfileAcademics = () => {
     offersReceived: 0,
   });
   
-  // Resume state
-  const [resumes, setResumes] = useState([
-
-  ]);
+  const [resumes, setResumes] = useState([]);
   const [isEditingResume, setIsEditingResume] = useState(false);
-  
-  // Documents state
-  const [documents, setDocuments] = useState([
-
-  ]);
-  
-  // Move this useState hook inside the component
+  const [documents, setDocuments] = useState([]);
   const [applicationTimeline, setApplicationTimeline] = useState([]);
+  const [newResume, setNewResume] = useState({ name: "", link: "" });
+  const [showResumeForm, setShowResumeForm] = useState(false);
+  const [newDocument, setNewDocument] = useState({ type: "", link: "", expiryDate: "" });
+  const [showDocumentForm, setShowDocumentForm] = useState(false);
 
-  // Add these helper functions inside the component
   const getStatusColor = (status) => {
     switch(status) {
       case "applied": return "bg-blue-500";
@@ -122,7 +111,6 @@ const ProfileAcademics = () => {
           academicAttendance: data.academicAttendance || "0",
           tpAttendance: data.tpAttendance || "0",
           academicRemarks: data.academicRemarks || "",
-          // We would normally fetch this from the database
           semesterData: data.semesterData || [
             { semester: 1, cgpa: 8.5 },
             { semester: 2, cgpa: 8.7 },
@@ -131,15 +119,8 @@ const ProfileAcademics = () => {
           ],
         }));
         
-        // Fetch resumes if available
-        if (data.resumes) {
-          setResumes(data.resumes);
-        }
-        
-        // Fetch documents if available
-        if (data.documents) {
-          setDocuments(data.documents);
-        }
+        setResumes(data.resumes || []);
+        setDocuments(data.documents || []);
       }
     }
   };
@@ -148,50 +129,28 @@ const ProfileAcademics = () => {
     const user = auth.currentUser;
     if (user) {
       try {
-        // Get all jobs to calculate eligible jobs
         const jobsRef = collection(db, "jobs");
         const jobsSnapshot = await getDocs(jobsRef);
-        const allJobs = [];
-        jobsSnapshot.forEach((doc) => {
-          allJobs.push({
-            id: doc.id,
-            ...doc.data()
-          });
-        });
-        
-        // Get student profile to check eligibility criteria
+        const allJobs = jobsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
         const studentRef = doc(db, "students", user.uid);
         const studentSnap = await getDoc(studentRef);
         const studentData = studentSnap.exists() ? studentSnap.data() : {};
-        
-        // Get applications data
+
         const applicationsRef = collection(db, "applications");
         const q = query(applicationsRef, where("studentId", "==", user.uid));
         const querySnapshot = await getDocs(q);
-        
-        // Process application data
-        const applications = [];
-        querySnapshot.forEach((doc) => {
-          applications.push({
-            id: doc.id,
-            ...doc.data()
-          });
-        });
-        
-        // Calculate eligible jobs based on student profile criteria
+        const applications = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
         const eligibleJobs = allJobs.filter(job => {
-          // Check if student meets job criteria (CGPA, etc.)
           const meetsMinCGPA = !job.minCGPA || (studentData.cgpa && parseFloat(studentData.cgpa) >= parseFloat(job.minCGPA));
           const meetsArrearCriteria = !job.maxArrears || (studentData.currentArrears && parseInt(studentData.currentArrears) <= parseInt(job.maxArrears));
-          // Add more criteria as needed
           return meetsMinCGPA && meetsArrearCriteria;
         });
-        
-        // Calculate not applied jobs
+
         const appliedJobIds = applications.map(app => app.jobId);
         const notAppliedJobs = eligibleJobs.filter(job => !appliedJobIds.includes(job.id));
-        
-        // Update state with calculated data
+
         setUserData(prev => ({
           ...prev,
           eligibleJobs: eligibleJobs.length,
@@ -201,13 +160,10 @@ const ProfileAcademics = () => {
           interviewedJobs: applications.filter(app => app.status === "interviewed").length,
           offersReceived: applications.filter(app => app.status === "offered").length,
         }));
-        
-        // Also update the timeline data
+
         setApplicationTimeline(applications
           .sort((a, b) => b.appliedDate.toDate() - a.appliedDate.toDate())
-          .slice(0, 5) // Show only the 5 most recent
-        );
-        
+          .slice(0, 5));
       } catch (error) {
         console.error("Error fetching application stats:", error);
       }
@@ -220,7 +176,6 @@ const ProfileAcademics = () => {
       try {
         const studentRef = doc(db, "students", user.uid);
         await updateDoc(studentRef, {
-          // Save academic data
           cgpa: userData.cgpa,
           skills: userData.skills,
           academicInfo: userData.academicInfo,
@@ -231,8 +186,6 @@ const ProfileAcademics = () => {
           tpAttendance: userData.tpAttendance,
           academicRemarks: userData.academicRemarks,
           semesterData: userData.semesterData,
-          
-          // Update timestamp
           updatedAt: serverTimestamp(),
         });
         toast.success("Academic profile updated successfully!");
@@ -246,11 +199,6 @@ const ProfileAcademics = () => {
     }
   };
 
-  // Add these state variables
-  const [newResume, setNewResume] = useState({ name: "", link: "" });
-  const [showResumeForm, setShowResumeForm] = useState(false);
-  
-  // Replace handleAddResume with this
   const handleAddResume = async () => {
     if (newResume.name && newResume.link) {
       const resumeToAdd = {
@@ -260,18 +208,15 @@ const ProfileAcademics = () => {
         isPrimary: resumes.length === 0,
         feedback: ""
       };
-      
       const updatedResumes = [...resumes, resumeToAdd];
       setResumes(updatedResumes);
-      
-      // Save to database
+
       const user = auth.currentUser;
       if (user) {
         try {
           const studentRef = doc(db, "students", user.uid);
           await updateDoc(studentRef, { resumes: updatedResumes });
           toast.success("Resume added successfully!");
-          // Reset form
           setNewResume({ name: "", link: "" });
           setShowResumeForm(false);
         } catch (error) {
@@ -289,10 +234,8 @@ const ProfileAcademics = () => {
       ...resume,
       isPrimary: resume.id === id
     }));
-    
     setResumes(updatedResumes);
-    
-    // Save to database
+
     const user = auth.currentUser;
     if (user) {
       try {
@@ -309,15 +252,11 @@ const ProfileAcademics = () => {
   const handleDeleteResume = async (id) => {
     if (window.confirm("Are you sure you want to delete this resume?")) {
       const updatedResumes = resumes.filter(resume => resume.id !== id);
-      
-      // If we deleted the primary resume, set a new one if available
       if (resumes.find(r => r.id === id)?.isPrimary && updatedResumes.length > 0) {
         updatedResumes[0].isPrimary = true;
       }
-      
       setResumes(updatedResumes);
-      
-      // Save to database
+
       const user = auth.currentUser;
       if (user) {
         try {
@@ -332,11 +271,6 @@ const ProfileAcademics = () => {
     }
   };
 
-  // Add these state variables after the newResume state
-  const [newDocument, setNewDocument] = useState({ type: "", link: "", expiryDate: "" });
-  const [showDocumentForm, setShowDocumentForm] = useState(false);
-  
-  // Replace handleAddDocument with this
   const handleAddDocument = async () => {
     if (newDocument.type && newDocument.link) {
       const documentToAdd = {
@@ -345,18 +279,15 @@ const ProfileAcademics = () => {
         link: newDocument.link,
         expiryDate: newDocument.expiryDate || null
       };
-      
       const updatedDocuments = [...documents, documentToAdd];
       setDocuments(updatedDocuments);
-      
-      // Save to database
+
       const user = auth.currentUser;
       if (user) {
         try {
           const studentRef = doc(db, "students", user.uid);
           await updateDoc(studentRef, { documents: updatedDocuments });
           toast.success("Document added successfully!");
-          // Reset form
           setNewDocument({ type: "", link: "", expiryDate: "" });
           setShowDocumentForm(false);
         } catch (error) {
@@ -373,8 +304,7 @@ const ProfileAcademics = () => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       const updatedDocuments = documents.filter(doc => doc.id !== id);
       setDocuments(updatedDocuments);
-      
-      // Save to database
+
       const user = auth.currentUser;
       if (user) {
         try {
@@ -389,7 +319,6 @@ const ProfileAcademics = () => {
     }
   };
 
-  // Tabs for the profile page
   const profileTabs = [
     { id: "academics", label: "Academics", icon: <Book size={16} /> },
     { id: "resumes", label: "Resumes", icon: <FileText size={16} /> },
@@ -397,13 +326,12 @@ const ProfileAcademics = () => {
     { id: "tracker", label: "Tracker", icon: <Target size={16} /> },
   ];
 
-  // CGPA Chart data
   const cgpaChartData = {
     labels: userData.semesterData.map(item => `Semester ${item.semester}`),
     datasets: [
       {
         label: 'CGPA',
-        data: userData.semesterData.map(item => item.cgpa),
+        data: userData.semesterData.map(item => item.cgpa || 0),
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.5)',
         tension: 0.1,
@@ -411,18 +339,17 @@ const ProfileAcademics = () => {
     ],
   };
 
-  // Application funnel data
   const applicationFunnelData = {
     labels: ['Eligible', 'Applied', 'Shortlisted', 'Interviewed', 'Offers'],
     datasets: [
       {
         label: 'Applications',
         data: [
-          userData.eligibleJobs,
-          userData.appliedJobs,
-          userData.shortlistedJobs,
-          userData.interviewedJobs,
-          userData.offersReceived,
+          userData.eligibleJobs || 0,
+          userData.appliedJobs || 0,
+          userData.shortlistedJobs || 0,
+          userData.interviewedJobs || 0,
+          userData.offersReceived || 0,
         ],
         backgroundColor: [
           'rgba(54, 162, 235, 0.5)',
@@ -443,11 +370,9 @@ const ProfileAcademics = () => {
     ],
   };
 
-  // Render the academics tab content
   const renderAcademicsTab = () => {
     return (
       <div className="space-y-8">
-        {/* Section 2: Academic Details */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Academic Details</h3>
@@ -469,22 +394,19 @@ const ProfileAcademics = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* CGPA */}
             <div>
               <p className="text-sm font-medium text-gray-500">CGPA</p>
               {isEditing ? (
                 <input
                   type="text"
                   value={userData.cgpa}
-                  onChange={(e) => setUserData(prevData => ({ ...prevData, cgpa: e.target.value }))}
+                  onChange={(e) => setUserData(prev => ({ ...prev, cgpa: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-md"
                 />
               ) : (
                 <p className="text-base">{userData.cgpa || "Not specified"}</p>
               )}
             </div>
-            
-            {/* Current Arrears */}
             <div>
               <p className="text-sm font-medium text-gray-500">Current Arrears</p>
               {isEditing ? (
@@ -492,15 +414,13 @@ const ProfileAcademics = () => {
                   type="number"
                   min="0"
                   value={userData.currentArrears}
-                  onChange={(e) => setUserData(prevData => ({ ...prevData, currentArrears: e.target.value }))}
+                  onChange={(e) => setUserData(prev => ({ ...prev, currentArrears: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-md"
                 />
               ) : (
                 <p className="text-base">{userData.currentArrears}</p>
               )}
             </div>
-            
-            {/* History of Arrears */}
             <div>
               <p className="text-sm font-medium text-gray-500">History of Arrears</p>
               {isEditing ? (
@@ -508,21 +428,19 @@ const ProfileAcademics = () => {
                   type="number"
                   min="0"
                   value={userData.historyOfArrears}
-                  onChange={(e) => setUserData(prevData => ({ ...prevData, historyOfArrears: e.target.value }))}
+                  onChange={(e) => setUserData(prev => ({ ...prev, historyOfArrears: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-md"
                 />
               ) : (
                 <p className="text-base">{userData.historyOfArrears}</p>
               )}
             </div>
-            
-            {/* Backlogs Cleared */}
             <div>
               <p className="text-sm font-medium text-gray-500">Backlogs Cleared</p>
               {isEditing ? (
                 <select
                   value={userData.backlogsCleared}
-                  onChange={(e) => setUserData(prevData => ({ ...prevData, backlogsCleared: e.target.value }))}
+                  onChange={(e) => setUserData(prev => ({ ...prev, backlogsCleared: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-md"
                 >
                   <option value="Yes">Yes</option>
@@ -533,15 +451,13 @@ const ProfileAcademics = () => {
                 <p className="text-base">{userData.backlogsCleared}</p>
               )}
             </div>
-            
-            {/* Academic Attendance */}
             <div>
               <p className="text-sm font-medium text-gray-500">Academic Attendance</p>
               {isEditing ? (
                 <input
                   type="text"
                   value={userData.academicAttendance}
-                  onChange={(e) => setUserData(prevData => ({ ...prevData, academicAttendance: e.target.value }))}
+                  onChange={(e) => setUserData(prev => ({ ...prev, academicAttendance: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-md"
                   placeholder="e.g., 85%"
                 />
@@ -549,15 +465,13 @@ const ProfileAcademics = () => {
                 <p className="text-base">{userData.academicAttendance}%</p>
               )}
             </div>
-            
-            {/* T&P Attendance */}
             <div>
               <p className="text-sm font-medium text-gray-500">T&P Attendance</p>
               {isEditing ? (
                 <input
                   type="text"
                   value={userData.tpAttendance}
-                  onChange={(e) => setUserData(prevData => ({ ...prevData, tpAttendance: e.target.value }))}
+                  onChange={(e) => setUserData(prev => ({ ...prev, tpAttendance: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-md"
                   placeholder="e.g., 90%"
                 />
@@ -565,28 +479,42 @@ const ProfileAcademics = () => {
                 <p className="text-base">{userData.tpAttendance}%</p>
               )}
             </div>
-            
-            {/* Academic Remarks */}
             <div className="md:col-span-2 lg:col-span-3">
               <p className="text-sm font-medium text-gray-500">Academic Remarks</p>
               {isEditing ? (
                 <textarea
                   value={userData.academicRemarks}
-                  onChange={(e) => setUserData(prevData => ({ ...prevData, academicRemarks: e.target.value }))}
+                  onChange={(e) => setUserData(prev => ({ ...prev, academicRemarks: e.target.value }))}
                   className="w-full px-3 py-2 border rounded-md"
                   rows="3"
-                ></textarea>
+                />
               ) : (
                 <p className="text-base">{userData.academicRemarks || "No remarks"}</p>
               )}
             </div>
           </div>
         </div>
+
+        {/* CGPA Trend Chart */}
+        {userData.semesterData.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold mb-4">CGPA Trend</h3>
+            <div className="h-64">
+              <Line 
+                data={cgpaChartData} 
+                options={{ 
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true, max: 10 } },
+                  plugins: { legend: { position: 'top' } }
+                }} 
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
-  // Render the resumes tab content
   const renderResumesTab = () => {
     return (
       <div className="space-y-8">
@@ -604,7 +532,6 @@ const ProfileAcademics = () => {
             )}
           </div>
           
-          {/* Resume Form */}
           {showResumeForm && (
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
               <h4 className="font-medium mb-3">Add New Resume</h4>
@@ -614,7 +541,7 @@ const ProfileAcademics = () => {
                   <input
                     type="text"
                     value={newResume.name}
-                    onChange={(e) => setNewResume({...newResume, name: e.target.value})}
+                    onChange={(e) => setNewResume({ ...newResume, name: e.target.value })}
                     className="w-full px-3 py-2 border rounded-md"
                     placeholder="e.g., Technical Resume, General Resume"
                   />
@@ -624,7 +551,7 @@ const ProfileAcademics = () => {
                   <input
                     type="text"
                     value={newResume.link}
-                    onChange={(e) => setNewResume({...newResume, link: e.target.value})}
+                    onChange={(e) => setNewResume({ ...newResume, link: e.target.value })}
                     className="w-full px-3 py-2 border rounded-md"
                     placeholder="https://drive.google.com/file/..."
                   />
@@ -719,7 +646,6 @@ const ProfileAcademics = () => {
     );
   };
 
-  // Render the documents tab content
   const renderDocumentsTab = () => {
     return (
       <div className="space-y-8">
@@ -737,7 +663,6 @@ const ProfileAcademics = () => {
             )}
           </div>
           
-          {/* Document Form */}
           {showDocumentForm && (
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
               <h4 className="font-medium mb-3">Add New Document</h4>
@@ -747,7 +672,7 @@ const ProfileAcademics = () => {
                   <input
                     type="text"
                     value={newDocument.type}
-                    onChange={(e) => setNewDocument({...newDocument, type: e.target.value})}
+                    onChange={(e) => setNewDocument({ ...newDocument, type: e.target.value })}
                     className="w-full px-3 py-2 border rounded-md"
                     placeholder="e.g., Aadhaar, PAN, Passport"
                   />
@@ -757,7 +682,7 @@ const ProfileAcademics = () => {
                   <input
                     type="text"
                     value={newDocument.link}
-                    onChange={(e) => setNewDocument({...newDocument, link: e.target.value})}
+                    onChange={(e) => setNewDocument({ ...newDocument, link: e.target.value })}
                     className="w-full px-3 py-2 border rounded-md"
                     placeholder="https://drive.google.com/file/..."
                   />
@@ -767,7 +692,7 @@ const ProfileAcademics = () => {
                   <input
                     type="date"
                     value={newDocument.expiryDate}
-                    onChange={(e) => setNewDocument({...newDocument, expiryDate: e.target.value})}
+                    onChange={(e) => setNewDocument({ ...newDocument, expiryDate: e.target.value })}
                     className="w-full px-3 py-2 border rounded-md"
                   />
                 </div>
@@ -849,15 +774,20 @@ const ProfileAcademics = () => {
     );
   };
 
-  // Render the tracker tab content
   const renderTrackerTab = () => {
     return (
       <div className="space-y-8">
-        {/* Section 1: Application Funnel */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold mb-4">Application Funnel</h3>
           <div className="h-64">
-            <Line data={applicationFunnelData} options={{ maintainAspectRatio: false }} />
+            <Line 
+              data={applicationFunnelData} 
+              options={{ 
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { position: 'top' } }
+              }} 
+            />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
             <div className="bg-blue-50 p-3 rounded-lg text-center">
@@ -883,50 +813,24 @@ const ProfileAcademics = () => {
           </div>
         </div>
         
-        {/* Section 2: Application Timeline */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold mb-4">Application Timeline</h3>
           <div className="relative">
-            {/* Timeline line */}
             <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-            
-            {/* Timeline items - these would be dynamically generated from actual application data */}
             <div className="ml-12 space-y-8">
-              <div className="relative">
-                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border border-white bg-green-500"></div>
-                <div className="mb-1 flex items-center justify-between">
-                  <h4 className="text-md font-semibold">Applied to Google</h4>
-                  <p className="text-xs text-gray-500">2023-10-15</p>
+              {applicationTimeline.map((app, index) => (
+                <div key={index} className="relative">
+                  <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border border-white" style={{ backgroundColor: getStatusColor(app.status) }}></div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <h4 className="text-md font-semibold">{getStatusText(app.status)} {app.company}</h4>
+                    <p className="text-xs text-gray-500">{app.appliedDate ? app.appliedDate.toDate().toLocaleDateString() : "N/A"}</p>
+                  </div>
+                  <p className="text-sm text-gray-600">{app.position || "N/A"}</p>
                 </div>
-                <p className="text-sm text-gray-600">Software Engineer</p>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border border-white bg-yellow-500"></div>
-                <div className="mb-1 flex items-center justify-between">
-                  <h4 className="text-md font-semibold">Shortlisted by Microsoft</h4>
-                  <p className="text-xs text-gray-500">2023-10-10</p>
-                </div>
-                <p className="text-sm text-gray-600">Frontend Developer</p>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border border-white bg-purple-500"></div>
-                <div className="mb-1 flex items-center justify-between">
-                  <h4 className="text-md font-semibold">Interview with Amazon</h4>
-                  <p className="text-xs text-gray-500">2023-10-05</p>
-                </div>
-                <p className="text-sm text-gray-600">Full Stack Developer</p>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border border-white bg-pink-500"></div>
-                <div className="mb-1 flex items-center justify-between">
-                  <h4 className="text-md font-semibold">Offer from Netflix</h4>
-                  <p className="text-xs text-gray-500">2023-09-28</p>
-                </div>
-                <p className="text-sm text-gray-600">UI/UX Developer - ₹12 LPA</p>
-              </div>
+              ))}
+              {applicationTimeline.length === 0 && (
+                <p className="text-gray-500 text-center">No recent applications.</p>
+              )}
             </div>
           </div>
         </div>
@@ -935,10 +839,8 @@ const ProfileAcademics = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 py-6">
       <ToastContainer position="top-right" autoClose={3000} />
-      
-     
       
       <h2 className="text-2xl font-bold mb-6">Academic Profile</h2>
       

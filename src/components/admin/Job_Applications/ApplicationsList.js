@@ -3,6 +3,7 @@ import { collection, getDocs, query, where, doc, getDoc, updateDoc } from 'fireb
 import { db } from '../../../firebase';
 import ApplicationsTable from './ApplicationsTable';
 import AnswersModal from './AnswersModal';
+import PageLoader from '../../ui/PageLoader';
 
 function ApplicationsList() {
   const [applications, setApplications] = useState([]);
@@ -193,6 +194,10 @@ function ApplicationsList() {
         handleSaveFeedback={saveFeedbackWrapper} // Use the wrapper function instead of .current
         setSelectedAnswers={setSelectedAnswers}
         setIsAnswersModalOpen={setIsAnswersModalOpen}
+        visibleColumns={[
+          'name', 'rollNumber', 'department', 'cgpa', 'match', 'status', 'actions', 'resume', 'predict', 
+          'question1', 'question2', 'feedback'
+        ]} // Add default visible columns
       />
 
       {isAnswersModalOpen && (

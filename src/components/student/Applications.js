@@ -1,35 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'; // Added serverTimestamp
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createStatusUpdateNotification } from '../../utils/notificationHelpers';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import Loader from '../../loading';
 
-// First, add 'withdrawn' to the STATUS_COLORS object
 const STATUS_COLORS = {
-  'pending': 'bg-yellow-100 text-yellow-800',
-  'under_review': 'bg-blue-100 text-blue-800',
-  'shortlisted': 'bg-green-100 text-green-800',
-  'not_shortlisted': 'bg-red-100 text-red-800',
-  'waitlisted': 'bg-orange-100 text-orange-800',
-  'interview_scheduled': 'bg-purple-100 text-purple-800',
-  'selected': 'bg-emerald-100 text-emerald-800',
-  'rejected': 'bg-red-100 text-red-800',
-  'withdrawn': 'bg-red-100 text-red-800' // Using red color for withdrawn applications
+  pending: 'bg-yellow-100 text-yellow-800',
+  under_review: 'bg-blue-100 text-blue-800',
+  shortlisted: 'bg-green-100 text-green-800',
+  not_shortlisted: 'bg-red-100 text-red-800',
+  waitlisted: 'bg-orange-100 text-orange-800',
+  interview_scheduled: 'bg-purple-100 text-purple-800',
+  selected: 'bg-emerald-100 text-emerald-800',
+  rejected: 'bg-red-100 text-red-800',
+  withdrawn: 'bg-red-100 text-red-800'
 };
 
-// Also add 'withdrawn' to the STATUS_LABELS object
 const STATUS_LABELS = {
-  'pending': '⏳ Applied',
-  'under_review': '⏳ Under Review',
-  'shortlisted': '✅ Shortlisted',
-  'not_shortlisted': '❌ Not Shortlisted',
-  'waitlisted': '🟡 Waitlisted',
-  'interview_scheduled': '📅 Interview Scheduled',
-  'selected': '🎉 Selected',
-  'rejected': '⚠️ Rejected',
-  'withdrawn': '🚫 Withdrawn' // Adding withdrawn label
+  pending: '⏳ Pending',
+  under_review: '⏳ Under Review',
+  shortlisted: '✅ Shortlisted',
+  not_shortlisted: '❌ Not Shortlisted',
+  waitlisted: '🟡 Waitlisted',
+  interview_scheduled: '📅 Interview Scheduled',
+  selected: '🎉 Selected',
+  rejected: '⚠️ Rejected',
+  withdrawn: '🚫 Withdrawn'
 };
 
 const Applications = () => {
@@ -47,8 +46,8 @@ const Applications = () => {
       const user = auth.currentUser;
       if (!user) return;
 
-      // First, get the student's skills
-      const studentDoc = await getDoc(doc(db, 'student_academics', user.uid));
+      // Fetch student data
+      const studentDoc = await getDoc(doc(db, 'students', user.uid));
       const studentSkills = studentDoc.data()?.skills || [];
 
       const applicationsRef = collection(db, 'applications');
@@ -58,13 +57,13 @@ const Applications = () => {
       const applicationsData = [];
       for (const docSnapshot of querySnapshot.docs) {
         const applicationData = docSnapshot.data();
-        const jobRef = doc(db, 'jobs', applicationData.job_id);
+        const jobRef = doc(db, 'jobs', applicationData.job_id || applicationData.jobId);
         const jobDoc = await getDoc(jobRef);
         
         if (jobDoc.exists()) {
           const jobData = jobDoc.data();
           // Calculate skill match percentage
-          const requiredSkills = jobData.eligibilityCriteria?.skills || [];
+          const requiredSkills = jobData.skills || jobData.eligibilityCriteria?.skills || [];
           const matchedSkills = requiredSkills.filter(skill => 
             studentSkills.map(s => s.toLowerCase()).includes(skill.toLowerCase())
           );
@@ -72,11 +71,18 @@ const Applications = () => {
             ? Math.round((matchedSkills.length / requiredSkills.length) * 100)
             : 0;
 
+          // Determine current round
+          const rounds = Array.isArray(jobData.rounds) ? jobData.rounds : jobData.hiringWorkflow || [];
+          const currentRoundIndex = jobData.currentRoundIndex || 0;
+          const currentRound = rounds[currentRoundIndex]?.name || rounds[currentRoundIndex]?.roundName || 'N/A';
+
           applicationsData.push({
             id: docSnapshot.id,
             ...applicationData,
             job: jobData,
-            skillMatch: skillMatch
+            skillMatch: skillMatch,
+            currentRound: currentRound,
+            rounds: applicationData.student?.rounds || {}
           });
         }
       }
@@ -84,19 +90,17 @@ const Applications = () => {
       console.log('Fetched applications with skill match:', applicationsData);
       setApplications(applicationsData);
       
-      // Check for any status updates since last fetch
+      // Check for status updates
       const lastFetchTime = localStorage.getItem('lastApplicationsFetchTime');
       if (lastFetchTime) {
         const lastFetchDate = new Date(parseInt(lastFetchTime, 10));
         applicationsData.forEach(app => {
-          // If the status was updated after the last fetch, create a notification
           if (app.statusUpdatedAt && app.statusUpdatedAt.toDate() > lastFetchDate) {
             createStatusUpdateNotification(user.uid, app);
           }
         });
       }
       
-      // Update the last fetch time
       localStorage.setItem('lastApplicationsFetchTime', Date.now().toString());
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -106,30 +110,52 @@ const Applications = () => {
     }
   };
 
-  const getStatusProgressPoints = (status) => {
-    const stages = ['pending', 'under_review', 'shortlisted', 'interview_scheduled', 'selected'];
-    const currentIndex = stages.indexOf(status);
-    return stages.map((stage, index) => ({
-      completed: index <= currentIndex,
-      stageName: stage, // Add stage name for tooltip
-    }));
+  const getStatusProgressPoints = (rounds, currentRound, jobRounds) => {
+    if (!Array.isArray(jobRounds)) return [];
+
+    const currentIndex = jobRounds.findIndex(r => (r.name || r.roundName) === currentRound);
+
+    return jobRounds.map((round, index) => {
+      const roundName = round.name || round.roundName || `Round ${index + 1}`;
+
+      return {
+        completed: rounds[roundName] === 'shortlisted' || index < currentIndex,
+        stageName: roundName,
+        roundLabel: `R${index + 1}`
+      };
+    });
   };
 
-  const getStatusProgress = (status) => {
-    const stages = ['pending', 'under_review', 'shortlisted', 'interview_scheduled', 'selected'];
-    const currentIndex = stages.indexOf(status);
-    // Calculate width to stop at the center of the current dot
-    return (currentIndex / (stages.length - 1)) * 100;
+  const getStatusProgress = (rounds, currentRound, jobRounds) => {
+    if (!Array.isArray(jobRounds) || jobRounds.length <= 1) {
+      return 0;
+    }
+
+    let lastShortlistedIndex = -1;
+    jobRounds.forEach((round, index) => {
+      const roundName = round.name || round.roundName;
+      if (rounds[roundName] === 'shortlisted') {
+        lastShortlistedIndex = index;
+      }
+    });
+
+    const currentIndex = jobRounds.findIndex(r => (r.name || r.roundName) === currentRound);
+    const effectiveIndex = lastShortlistedIndex >= 0 ? lastShortlistedIndex : (currentIndex >= 0 ? currentIndex : -1);
+
+    if (effectiveIndex < 0) {
+      return 0;
+    }
+
+    const progress = (effectiveIndex / (jobRounds.length - 1)) * 100;
+    return Math.min(100, Math.max(0, progress));
   };
 
   const filteredApplications = applications
-    .filter(app => filter === 'all' ? true : app.status === filter)
+    .filter(app => filter === 'all' ? true : app.rounds[app.currentRound] === filter)
     .sort((a, b) => {
-      // First sort withdrawn applications to the end
-      if (a.status === 'withdrawn' && b.status !== 'withdrawn') return 1;
-      if (a.status !== 'withdrawn' && b.status === 'withdrawn') return -1;
+      if (a.rounds[a.currentRound] === 'withdrawn' && b.rounds[b.currentRound] !== 'withdrawn') return 1;
+      if (a.rounds[a.currentRound] !== 'withdrawn' && b.rounds[b.currentRound] === 'withdrawn') return -1;
       
-      // Then apply the regular sorting
       if (sortBy === 'newest') return b.applied_at - a.applied_at;
       if (sortBy === 'oldest') return a.applied_at - b.applied_at;
       if (sortBy === 'company') return a.job.company.localeCompare(b.job.company);
@@ -137,39 +163,73 @@ const Applications = () => {
     });
 
   const handleWithdraw = async (applicationId) => {
+    if (!window.confirm(
+      "WARNING: If you withdraw this application, you CANNOT reapply to this job. Are you sure you want to withdraw?"
+    )) {
+      return;
+    }
+    
     try {
       const user = auth.currentUser;
       if (user) {
-        // Get the application to find the job_id
-        const applicationRef = doc(db, 'applications', applicationId);
-        const applicationDoc = await getDoc(applicationRef);
-        const applicationData = applicationDoc.data();
+        const application = applications.find(app => app.id === applicationId);
+        if (!application) {
+          toast.error("Application not found");
+          return;
+        }
+        const currentRound = application.currentRound;
         
-        // Update the application status to withdrawn
-        await updateDoc(applicationRef, {
-          status: 'withdrawn',
-          withdrawnAt: serverTimestamp() // Add timestamp for when it was withdrawn
+        const batch = writeBatch(db);
+        const applicationRef = doc(db, 'applications', applicationId);
+        const studentRef = doc(db, 'students', user.uid);
+        
+        // Update rounds map
+        const updatedRounds = {
+          ...application.rounds,
+          [currentRound]: 'withdrawn'
+        };
+        
+        batch.update(applicationRef, {
+          'student.rounds': updatedRounds,
+          withdrawnAt: serverTimestamp(),
+          lastModifiedBy: 'student'
         });
         
-        // Update the job capacity if this job has a capacity field
-        if (applicationData && applicationData.job_id) {
-          const jobRef = doc(db, 'jobs', applicationData.job_id);
-          const jobDoc = await getDoc(jobRef);
+        batch.update(studentRef, {
+          rounds: updatedRounds
+        });
+        
+        // Update job's applicants and filledPositions
+        const jobRef = doc(db, 'jobs', application.job_id || application.jobId);
+        const jobDoc = await getDoc(jobRef);
+        
+        if (jobDoc.exists()) {
+          const jobData = jobDoc.data();
+          if (jobData.capacity && jobData.filledPositions) {
+            batch.update(jobRef, {
+              filledPositions: Math.max(0, jobData.filledPositions - 1)
+            });
+          }
           
-          if (jobDoc.exists()) {
-            const jobData = jobDoc.data();
-            // If the job has a capacity and filledPositions field, update it
-            if (jobData.capacity && jobData.filledPositions) {
-              await updateDoc(jobRef, {
-                filledPositions: Math.max(0, jobData.filledPositions - 1)
-              });
-            }
+          if (jobData.applicants && Array.isArray(jobData.applicants)) {
+            const updatedApplicants = jobData.applicants.filter(
+              applicant => applicant.id !== user.uid
+            );
+            batch.update(jobRef, {
+              applicants: updatedApplicants
+            });
           }
         }
         
-        // Update the local state
-        setApplications(applications.map(app => 
-          app.id === applicationId ? { ...app, status: 'withdrawn', withdrawnAt: new Date() } : app
+        await batch.commit();
+        
+        // Update local state
+        setApplications(applications.map(app =>
+          app.id === applicationId ? {
+            ...app,
+            rounds: updatedRounds,
+            withdrawnAt: new Date()
+          } : app
         ));
         
         toast.success("Application withdrawn successfully!");
@@ -213,43 +273,50 @@ const Applications = () => {
       {/* Applications Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredApplications.map(application => (
-        <div 
-        key={application.id} 
-        className={`relative rounded-lg shadow-sm p-6 transition-all duration-300 
-          ${application.status === 'withdrawn' ? 'bg-red-50 opacity-50' : 'bg-white opacity-100'}`}
-      >
-        {/* 🔳 Withdrawn Overlay */}
-        {application.status === 'withdrawn' && (
-          <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-lg z-30">
-            <span className="text-3xl font-semibold text-red-600">Withdrawn</span>
-          </div>
-        )}
+          <div 
+            key={application.id} 
+            className={`relative rounded-lg shadow-sm p-6 transition-all duration-300 
+              ${application.rounds[application.currentRound] === 'withdrawn' ? 'bg-red-50 opacity-50' : 'bg-white opacity-100'}`}
+          >
+            {/* Withdrawn Overlay */}
+            {application.rounds[application.currentRound] === 'withdrawn' && (
+              <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-lg z-30">
+                <span className="text-3xl font-semibold text-red-600">Withdrawn</span>
+              </div>
+            )}
             {/* Header */}
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-xl font-medium">{application.job.position}</h3>
                 <p className="text-gray-600">{application.job.company}</p>
               </div>
-              <div className={`px-3 py-1 rounded-full text-sm ${STATUS_COLORS[application.status]}`}>
-                {STATUS_LABELS[application.status]}
+              <div className={`px-3 py-1 rounded-full text-sm ${STATUS_COLORS[application.rounds[application.currentRound]]}`}>
+                {STATUS_LABELS[application.rounds[application.currentRound]]}
               </div>
             </div>
 
             {/* Status Progress Bar with Dots */}
-            <div className="mb-4 relative">
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className="bg-pink-500 h-2.5 rounded-full transition-all duration-500"
-                  style={{ width: `${getStatusProgress(application.status)}%` }}
-                ></div>
-              </div>
+            <div className="mb-4 relative h-8">
+              {/* Background Bar */}
+              <div className="absolute top-1/2 transform -translate-y-1/2 w-full bg-gray-200 rounded-full h-2.5"></div>
+
+              {/* Filled Progress */}
+              <div
+                className="absolute top-1/2 transform -translate-y-1/2 bg-pink-500 h-2.5 rounded-full transition-all duration-500"
+                style={{ width: `${getStatusProgress(application.rounds, application.currentRound, application.job.rounds)}%` }}
+              ></div>
+
+              {/* Dots */}
               <div className="absolute top-1/2 transform -translate-y-1/2 left-0 w-full flex justify-between items-center">
-                {getStatusProgressPoints(application.status).map((point, index) => (
+                {getStatusProgressPoints(application.rounds, application.currentRound, application.job.rounds).map((point, index) => (
                   <div
                     key={index}
-                    className={`w-4 h-4 rounded-full ${point.completed ? 'bg-pink-500' : 'bg-gray-300'}`}
-                    title={STATUS_LABELS[point.stageName]} // Use title attribute for tooltip
-                  ></div>
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold z-10
+                      ${point.completed ? 'bg-pink-500 text-white' : 'bg-gray-300 text-gray-700'}`}
+                    title={point.stageName}
+                  >
+                    {point.roundLabel}
+                  </div>
                 ))}
               </div>
             </div>
@@ -270,8 +337,6 @@ const Applications = () => {
               </div>
             </div>
 
-        
-
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
               {application.job.jdFile && (
@@ -280,15 +345,15 @@ const Applications = () => {
                 </button>
               )}
               
-              {application.status === 'interview_scheduled' && (
+              {application.rounds[application.currentRound] === 'interview_scheduled' && (
                 <button className="px-4 py-2 text-purple-600 hover:bg-purple-50 rounded">
                   📅 Add to Calendar
                 </button>
               )}
 
-              {['pending', 'under_review'].includes(application.status) && (
+              {['pending', 'under_review'].includes(application.rounds[application.currentRound]) && (
                 <button 
-                  onClick={() => handleWithdraw(application.id)} // Add onClick handler
+                  onClick={() => handleWithdraw(application.id)}
                   className="px-4 py-2 text-red-600 hover:bg-red-50 rounded"
                 >
                   ❌ Withdraw
@@ -297,20 +362,16 @@ const Applications = () => {
             </div>
 
             {/* Admin Notes */}
-            {application.adminNotes && (
-              <div className="mt-4 p-3 bg-blue-50 rounded">
-                <p className="text-sm font-medium text-blue-800">Admin Note:</p>
-                <p className="text-sm text-blue-700">{application.adminNotes}</p>
-              </div>
-            )}
+              {application.feedback && (
+                <div className="mt-0 p-1 bg-blue-0 rounded">
+                  <p className="text-sm font-medium text-blue-800">Admin Note:</p>
+                  <p className="text-sm text-blue-700 break-words whitespace-pre-line">
+                    {application.feedback}
+                  </p>
+                </div>
+              )}
           </div>
-
-          
         ))}
-
-
-
-        
 
         {filteredApplications.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg col-span-2">
@@ -335,7 +396,9 @@ const Applications = () => {
         )}
 
         {loading && (
-          <div className="flex justify-center items-center min-h-[200px]"><LoadingSpinner size="large" text="Loading applications..." /></div>
+          <div className="fixed top-0 left-[20%] right-0 bottom-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50">
+            <Loader />
+          </div>
         )}
       </div>
     </div>

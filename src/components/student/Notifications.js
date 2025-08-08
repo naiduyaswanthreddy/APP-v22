@@ -5,6 +5,8 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Bell, Briefcase, CheckCircle, AlertCircle, Calendar, FileText, MessageSquare } from 'lucide-react';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import Loader from '../../loading'; // Add this import at the top
+
 
 // Notification icon component based on notification type
 const NotificationIcon = ({ type }) => {
@@ -207,7 +209,9 @@ const Notifications = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading notifications..." /></div>;
+    return         <div className="fixed top-0 left-[20%] right-0 bottom-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50">
+    <Loader />
+    </div>;
   }
 
   return (

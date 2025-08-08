@@ -6,6 +6,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { createJobPostingNotification } from '../../utils/notificationHelpers';
 import { MessageSquare } from 'lucide-react';
 import JobChat from './JobChat'; // Import the new JobChat component
+import Loader from '../../loading'; // Add this import at the top
+
 
 const JobPost = () => {
   // Keep only one set of state declarations at the top
@@ -535,10 +537,9 @@ const JobPost = () => {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading job postings...</p>
-            </div>
+      <div className="fixed top-0 left-0 right-0 bottom-0 bg-gray-100 bg-opacity-80 flex items-center justify-center z-50">
+      <Loader />
+    </div>
           ) : (
             <>
               {jobs.filter(job => !viewSavedJobs || savedJobs.includes(job.id)).length > 0 ? (

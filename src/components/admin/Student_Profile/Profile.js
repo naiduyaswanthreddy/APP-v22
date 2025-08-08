@@ -9,15 +9,13 @@ import {
   Briefcase, Award, 
   Book, 
   Download,
-  BarChart2, // Added for Analytics tab
-  FileText, // Added for Applications tab
-  MessageSquare, // Added for Notes tab
+  BarChart2, 
+  FileText, 
+  MessageSquare,
 } from "lucide-react";
 
 // Import Chart.js components
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title } from 'chart.js';
-
-
 
 // Import the individual profile components
 import ProfileBasic from "./ProfileBasic";
@@ -27,7 +25,6 @@ import ProfileExcellence from "./ProfileExcellence";
 import ProfileAnalytics from "./ProfileAnalytics";
 import ProfileApplications from "./ProfileApplications";
 import ProfileNotes from "./ProfileNotes";
-
 
 // Register ChartJS components
 ChartJS.register(
@@ -82,7 +79,6 @@ const Profile = ({ studentData, isAdminView }) => {
   };
 
   const calculateCompletionPercentage = (data) => {
-    // Define required fields from each section with weights
     const requiredFields = {
       basic: ['name', 'email', 'mobile', 'rollNumber', 'batch', 'program', 'department', 'gender', 'birthday', 'address', 'city', 'state', 'pinCode'],
       academics: ['cgpa', 'skills', 'semesterData'],
@@ -93,12 +89,9 @@ const Profile = ({ studentData, isAdminView }) => {
     let filledFields = 0;
     let totalFields = 0;
     
-    // Count filled fields with more accurate validation
     Object.keys(requiredFields).forEach(section => {
       requiredFields[section].forEach(field => {
         totalFields++;
-        
-        // More comprehensive check for different data types
         if (data[field] && 
             ((Array.isArray(data[field]) && data[field].length > 0) || 
              (typeof data[field] === 'string' && data[field].trim() !== '') ||
@@ -113,15 +106,9 @@ const Profile = ({ studentData, isAdminView }) => {
     setCompletionPercentage(percentage);
   };
 
-  // Function to handle PDF export
   const handleExportPDF = () => {
     if (!userData) return;
-    
-    // Create a PDF document with user data
-    // This would typically use a library like react-pdf
     const pdfBlob = generatePDF(userData);
-    
-    // Create a download link
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
     link.href = url;
@@ -131,24 +118,16 @@ const Profile = ({ studentData, isAdminView }) => {
     document.body.removeChild(link);
   };
 
-  // Function to handle print
   const handlePrint = () => {
     window.print();
   };
 
-  // Mock function for PDF generation - replace with actual implementation
   const generatePDF = (data) => {
-    // This would be implemented with a PDF library
-    // For now, return a mock blob
     return new Blob(['PDF content'], { type: 'application/pdf' });
   };
 
   const memoizedUserData = useMemo(() => userData, [userData]);
-
-  console.log("Profile.js rendered", { userData });
-
   const handleUserDataChange = (newData) => {
-    console.log("Updating userData in parent:", newData);
     setUserData(newData);
   };
 
@@ -164,7 +143,6 @@ const Profile = ({ studentData, isAdminView }) => {
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <ToastContainer position="top-right" autoClose={3000} />
       
-      {/* Profile Header with Completion Percentage */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 bg-white p-4 rounded-lg shadow">
         <div className="flex items-center mb-4 sm:mb-0">
           <div className="bg-indigo-100 p-3 rounded-full mr-4">
@@ -177,30 +155,11 @@ const Profile = ({ studentData, isAdminView }) => {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          {/* Profile Completion */}
           <div className="flex items-center bg-gray-100 px-3 py-2 rounded-lg">
             <div className="mr-2">
               <svg className="w-10 h-10">
-                <circle
-                  className="text-gray-300"
-                  strokeWidth="5"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="18"
-                  cx="20"
-                  cy="20"
-                />
-                <circle
-                  className="text-indigo-600"
-                  strokeWidth="5"
-                  strokeDasharray={`${completionPercentage * 1.13}, 113`}
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="18"
-                  cx="20"
-                  cy="20"
-                />
+                <circle className="text-gray-300" strokeWidth="5" stroke="currentColor" fill="transparent" r="18" cx="20" cy="20" />
+                <circle className="text-indigo-600" strokeWidth="5" strokeDasharray={`${completionPercentage * 1.13}, 113`} strokeLinecap="round" stroke="currentColor" fill="transparent" r="18" cx="20" cy="20" />
               </svg>
             </div>
             <div>
@@ -209,7 +168,6 @@ const Profile = ({ studentData, isAdminView }) => {
             </div>
           </div>
           
-          {/* Export & Print Buttons */}
           <button 
             onClick={handleExportPDF}
             className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
@@ -217,16 +175,16 @@ const Profile = ({ studentData, isAdminView }) => {
             <Download size={16} />
             <span>Export PDF</span>
           </button>
-       
         </div>
       </div>
       
-      {/* Profile Navigation */}
-      <div className="flex mb-6 overflow-x-auto">
-        <nav className="flex space-x-1 bg-white p-1 rounded-lg shadow w-full">
+      <div className="mb-6">
+        <nav className="flex border-b border-gray-200 bg-gray-100 overflow-x-auto">
           <button
             onClick={() => setActiveTab("basic")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "basic" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "basic" ? "bg-white text-blue-600 border-b-2 border-blue-500" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <User size={16} className="mr-2" />
             <span>Basic Info</span>
@@ -234,7 +192,9 @@ const Profile = ({ studentData, isAdminView }) => {
           
           <button
             onClick={() => setActiveTab("academics")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "academics" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "academics" ? "bg-white text-green-600 border-b-2 border-green-500" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <Book size={16} className="mr-2" />
             <span>Academics</span>
@@ -242,7 +202,9 @@ const Profile = ({ studentData, isAdminView }) => {
           
           <button
             onClick={() => setActiveTab("career")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "career" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "career" ? "bg-white text-yellow-600 border-b-2 border-yellow-500" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <Briefcase size={16} className="mr-2" />
             <span>Career</span>
@@ -250,34 +212,39 @@ const Profile = ({ studentData, isAdminView }) => {
           
           <button
             onClick={() => setActiveTab("excellence")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "excellence" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "excellence" ? "bg-white text-red-600 border-b-2 border-red-500" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <Award size={16} className="mr-2" />
             <span>Excellence</span>
           </button>
           
-          {/* New Analytics Tab */}
           <button
             onClick={() => setActiveTab("analytics")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "analytics" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "analytics" ? "bg-white text-purple-600 border-b-2 border-purple-500" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <BarChart2 size={16} className="mr-2" />
             <span>Analytics</span>
           </button>
           
-          {/* New Applications Tab */}
           <button
             onClick={() => setActiveTab("applications")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "applications" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "applications" ? "bg-white text-teal-600 border-b-2 border-teal-500" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <FileText size={16} className="mr-2" />
             <span>Applications</span>
           </button>
           
-          {/* New Notes Tab */}
           <button
             onClick={() => setActiveTab("notes")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "notes" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "notes" ? "bg-white text-pink-600 border-b-2 border-pink-500" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <MessageSquare size={16} className="mr-2" />
             <span>Notes</span>
@@ -285,112 +252,103 @@ const Profile = ({ studentData, isAdminView }) => {
         </nav>
       </div>
       
-      {/* Profile Content */}
-      <div className=" rounded-lg  overflow-hidden">
-        {/* Basic Info Tab */}
+      <div className={`bg-white rounded-lg shadow overflow-hidden p-6 ${activeTab === "basic" ? "border border-blue-500" : ""} ${activeTab === "academics" ? "border border-green-500" : ""} ${activeTab === "career" ? "border border-yellow-500" : ""} ${activeTab === "excellence" ? "border border-red-500" : ""} ${activeTab === "analytics" ? "border border-purple-500" : ""} ${activeTab === "applications" ? "border border-teal-500" : ""} ${activeTab === "notes" ? "border border-pink-500" : ""}`}>
         {activeTab === "basic" && (
-          <div className="p-0">
+          <div>
             <ProfileBasic userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
-        {/* Academics Tab */}
         {activeTab === "academics" && (
-          <div className="p-0">
-            <ProfileAcademics userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
+          <div>
+            <h2 className="text-xl font-bold mb-4">Academic Profile</h2>
+            <div className="flex space-x-4 mb-4">
+              <button className={`px-2 py-1 text-sm font-medium rounded ${activeTab === "academics" ? "bg-green-100 text-green-600" : "text-gray-500"}`}>Academics</button>
+              <button className="px-2 py-1 text-sm font-medium text-gray-500">Resumes</button>
+              <button className="px-2 py-1 text-sm font-medium text-gray-500">Documents</button>
+              <button className="px-2 py-1 text-sm font-medium text-gray-500">Tracker</button>
+            </div>
+            <div className="grid grid-cols-3 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold">Academic Details</h3>
+                <p><strong>CGPA</strong> 9</p>
+                <p><strong>Backlogs Cleared</strong> No</p>
+                <p><strong>Academic Remarks</strong> No remarks</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Current Arrears</h3>
+                <p>1</p>
+                <h3 className="text-lg font-semibold mt-4">Academic Attendance</h3>
+                <p>0%</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">History of Arrears</h3>
+                <p>0</p>
+                <h3 className="text-lg font-semibold mt-4">P&P Attendance</h3>
+                <p>0%</p>
+              </div>
+            </div>
+            <button className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Edit</button>
           </div>
         )}
         
-        {/* Career Tab */}
         {activeTab === "career" && (
-          <div className="p-0">
+          <div>
             <ProfileCareer userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
-        {/* Excellence Tab */}
         {activeTab === "excellence" && (
-          <div className="p-0">
+          <div>
             <ProfileExcellence userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
-        {/* Analytics Tab */}
         {activeTab === "analytics" && (
-          <div className="p-0">
+          <div>
             <ProfileAnalytics userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
-        {/* Applications Tab */}
         {activeTab === "applications" && (
-          <div className="p-0">
+          <div>
             <ProfileApplications userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
         
-        {/* Notes Tab */}
         {activeTab === "notes" && (
-          <div className="p-0">
+          <div>
             <ProfileNotes userData={memoizedUserData} isAdminView={isAdminView} onUserDataChange={handleUserDataChange} />
           </div>
         )}
       </div>
       
-      {/* Mobile Sidebar (for smaller screens) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 flex justify-around">
-        <button
-          onClick={() => setActiveTab("basic")}
-          className={`flex flex-col items-center p-2 ${activeTab === "basic" ? "text-indigo-600" : "text-gray-500"}`}
-        >
+        <button onClick={() => setActiveTab("basic")} className={`flex flex-col items-center p-2 ${activeTab === "basic" ? "text-indigo-600" : "text-gray-500"}`}>
           <User size={20} />
           <span className="text-xs mt-1">Basic</span>
         </button>
-        
-        <button
-          onClick={() => setActiveTab("academics")}
-          className={`flex flex-col items-center p-2 ${activeTab === "academics" ? "text-indigo-600" : "text-gray-500"}`}
-        >
+        <button onClick={() => setActiveTab("academics")} className={`flex flex-col items-center p-2 ${activeTab === "academics" ? "text-indigo-600" : "text-gray-500"}`}>
           <Book size={20} />
           <span className="text-xs mt-1">Academics</span>
         </button>
-        
-        <button
-          onClick={() => setActiveTab("career")}
-          className={`flex flex-col items-center p-2 ${activeTab === "career" ? "text-indigo-600" : "text-gray-500"}`}
-        >
+        <button onClick={() => setActiveTab("career")} className={`flex flex-col items-center p-2 ${activeTab === "career" ? "text-indigo-600" : "text-gray-500"}`}>
           <Briefcase size={20} />
           <span className="text-xs mt-1">Career</span>
         </button>
-        
-        <button
-          onClick={() => setActiveTab("excellence")}
-          className={`flex flex-col items-center p-2 ${activeTab === "excellence" ? "text-indigo-600" : "text-gray-500"}`}
-        >
+        <button onClick={() => setActiveTab("excellence")} className={`flex flex-col items-center p-2 ${activeTab === "excellence" ? "text-indigo-600" : "text-gray-500"}`}>
           <Award size={20} />
           <span className="text-xs mt-1">Excellence</span>
         </button>
-        
-        <button
-          onClick={() => setActiveTab("analytics")}
-          className={`flex flex-col items-center p-2 ${activeTab === "analytics" ? "text-indigo-600" : "text-gray-500"}`}
-        >
+        <button onClick={() => setActiveTab("analytics")} className={`flex flex-col items-center p-2 ${activeTab === "analytics" ? "text-indigo-600" : "text-gray-500"}`}>
           <BarChart2 size={20} />
           <span className="text-xs mt-1">Analytics</span>
         </button>
-        
-        <button
-          onClick={() => setActiveTab("applications")}
-          className={`flex flex-col items-center p-2 ${activeTab === "applications" ? "text-indigo-600" : "text-gray-500"}`}
-        >
+        <button onClick={() => setActiveTab("applications")} className={`flex flex-col items-center p-2 ${activeTab === "applications" ? "text-indigo-600" : "text-gray-500"}`}>
           <FileText size={20} />
           <span className="text-xs mt-1">Apps</span>
         </button>
-        
-        <button
-          onClick={() => setActiveTab("notes")}
-          className={`flex flex-col items-center p-2 ${activeTab === "notes" ? "text-indigo-600" : "text-gray-500"}`}
-        >
+        <button onClick={() => setActiveTab("notes")} className={`flex flex-col items-center p-2 ${activeTab === "notes" ? "text-indigo-600" : "text-gray-500"}`}>
           <MessageSquare size={20} />
           <span className="text-xs mt-1">Notes</span>
         </button>

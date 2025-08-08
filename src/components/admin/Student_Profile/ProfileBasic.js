@@ -393,36 +393,9 @@ const ProfileBasic = ({ userData: propUserData = {}, isAdminView, onUserDataChan
       </div>
       
       {/* Profile Header Card */}
-      <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center gap-6 mb-8">
-        <div className="flex flex-col items-center">
-          <div className="w-28 h-28 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center mb-2">
-            {profilePhoto ? (
-              <img src={profilePhoto} alt="Profile" className="object-cover w-full h-full" />
-            ) : (
-              <User size={64} className="text-gray-400" />
-            )}
-          </div>
-          <button
-            onClick={handleUploadProfilePhoto}
-            className="text-xs px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
-          >
-            Edit Photo
-          </button>
-        </div>
-        <div className="flex-1 flex flex-col gap-2 items-center md:items-start">
-          <h2 className="text-2xl font-bold flex items-center gap-2">{userData.name || 'Student Name'}
-            {userData.verifiedOn && <Check size={18} className="text-green-500" />}
-          </h2>
-          <div className="text-gray-600 flex flex-wrap gap-4">
-            <span><span className="font-medium">Roll No:</span> {userData.rollNumber || '-'}</span>
-            <span><span className="font-medium">Program:</span> {userData.program || '-'}</span>
-            <span><span className="font-medium">Batch:</span> {userData.batch || '-'}</span>
-          </div>
-          <div className="flex gap-2 mt-2">
-            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs">{userData.careerPath || '-'}</span>
-            <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs">{userData.placementCycle || 'N/A'}</span>
-          </div>
-        </div>
+      <div className=" rounded-xl p-0 flex flex-col md:flex-row items-center gap-6 mb-8">
+     
+     
         <div className="flex flex-col gap-2 items-center md:items-end">
           <button
             onClick={() => setIsEditing(!isEditing)}

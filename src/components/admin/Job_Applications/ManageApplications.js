@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, getDocs, doc, where, deleteDoc, getDoc } from 'firebase/firestore';
-// Update the firebase import path
 import { db } from '../../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from 'react-router-dom';
-// Add these imports at the top
 import { addDoc, serverTimestamp } from 'firebase/firestore';
-import AdminChat from '../AdminChat'; // Import the AdminChat component
-import LoadingSpinner from '../../ui/LoadingSpinner';
+import AdminChat from '../AdminChat';
 import NoData from '../../ui/NoData';
+import Loader from '../../../loading';
 
 // Custom toast component for truncating long messages
 const CustomToast = ({ message }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const shouldTruncate = message.length > 15;
-  
+
   return (
     <div>
       {shouldTruncate && !isExpanded ? (
         <div>
           {message.substring(0, 15)}
-          <button 
+          <button
             onClick={() => setIsExpanded(true)}
             className="ml-2 text-blue-500 underline text-sm"
           >
@@ -47,13 +45,19 @@ const ManageApplications = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState('deadline');
   const [shareLinks, setShareLinks] = useState({});
-  // Add state for chat modal
   const [showChatModal, setShowChatModal] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [jobTypes, setJobTypes] = useState(['all']);
+  const [eligibleYears, setEligibleYears] = useState([]);
 
-  // Add the generateShareLink function here
+  const currentYear = new Date().getFullYear();
+  const defaultYears = Array.from({length: 6}, (_, i) => currentYear - 3 + i);
+
+  // Generate share link
   const generateShareLink = async (jobId, company) => {
     try {
       const shareData = {
@@ -63,17 +67,14 @@ const ManageApplications = () => {
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         token: Math.random().toString(36).substring(2) + Date.now().toString(36)
       };
-
       const shareRef = await addDoc(collection(db, 'companyShares'), shareData);
-      // Use window.location.href to get the full base URL
       const baseUrl = window.location.href.split('/admin')[0];
       const shareLink = `${baseUrl}/company-view/${shareRef.id}`;
-      
+
       setShareLinks(prev => ({
         ...prev,
         [jobId]: shareLink
       }));
-
       showToast('Share link generated successfully!');
       return shareLink;
     } catch (error) {
@@ -90,11 +91,9 @@ const ManageApplications = () => {
     }
   };
 
-  // Add function to handle chat button click
-  // Modify the handleChatClick function
   const handleChatClick = (jobId) => {
     setSelectedJobId(jobId);
-    setShowChatModal(true); // Changed to match the state variable name
+    setShowChatModal(true);
   };
 
   const handleDeleteJob = async (jobId) => {
@@ -102,7 +101,7 @@ const ManageApplications = () => {
       if (window.confirm('Are you sure you want to delete this job?')) {
         await deleteDoc(doc(db, 'jobs', jobId));
         showToast('Job deleted successfully');
-        fetchJobs(); // Refresh the jobs list
+        fetchJobs();
       }
     } catch (error) {
       console.error('Error deleting job:', error);
@@ -119,19 +118,21 @@ const ManageApplications = () => {
       const jobsRef = collection(db, 'jobs');
       const jobsSnapshot = await getDocs(jobsRef);
       const jobsData = [];
+      const types = new Set(['all']);
+      const years = new Set(defaultYears);
 
       for (const jobDoc of jobsSnapshot.docs) {
         const jobData = jobDoc.data();
         const applicationsRef = collection(db, 'applications');
         const applicationsQuery = query(applicationsRef, where('job_id', '==', jobDoc.id));
         const applicationsSnapshot = await getDocs(applicationsQuery);
-        
+
         const applications = [];
         for (const appDoc of applicationsSnapshot.docs) {
           const appData = appDoc.data();
           const studentDoc = await getDoc(doc(db, 'students', appData.student_id));
           const studentData = studentDoc.exists() ? studentDoc.data() : {};
-          
+
           applications.push({
             id: appDoc.id,
             ...appData,
@@ -142,41 +143,47 @@ const ManageApplications = () => {
             }
           });
         }
-  
-        // Properly handle the Firestore timestamp
+
+        // Handle Firestore timestamp
         let deadlineDate = null;
         let deadlineFormatted = 'No Deadline';
-        
+
         if (jobData.deadline) {
-          // Check if it's a Firestore timestamp
           if (jobData.deadline.toDate && typeof jobData.deadline.toDate === 'function') {
             deadlineDate = jobData.deadline.toDate();
             deadlineFormatted = deadlineDate.toLocaleDateString();
-          } 
-          // Check if it's already a Date object
-          else if (jobData.deadline instanceof Date) {
+          } else if (jobData.deadline instanceof Date) {
             deadlineDate = jobData.deadline;
             deadlineFormatted = deadlineDate.toLocaleDateString();
-          }
-          // If it's a string that can be parsed as a date
-          else if (typeof jobData.deadline === 'string') {
+          } else if (typeof jobData.deadline === 'string') {
             const parsedDate = new Date(jobData.deadline);
             if (!isNaN(parsedDate.getTime())) {
               deadlineDate = parsedDate;
-              deadlineFormatted = deadlineDate.toLocaleDateString();
+              deadlineFormatted = parsedDate.toLocaleDateString();
             }
           }
+        }
+
+        // Add job type to set
+        if (jobData.jobTypes) {
+          types.add(jobData.jobTypes);
+        }
+
+        // Add eligible years to set
+        if (jobData.eligibleBatch && Array.isArray(jobData.eligibleBatch)) {
+          jobData.eligibleBatch.forEach(year => years.add(Number(year)));
         }
 
         jobsData.push({
           id: jobDoc.id,
           ...jobData,
-          deadlineDate: deadlineDate, // Store the actual Date object for sorting
-          deadline: deadlineFormatted, // Store the formatted string for display
+          deadlineDate: deadlineDate,
+          deadline: deadlineFormatted,
           stats: {
             total: applications.length,
             shortlisted: applications.filter(app => app.status === 'shortlisted').length,
             rejected: applications.filter(app => app.status === 'rejected').length,
+            selected: applications.filter(app => app.status === 'selected').length,
             pending: applications.filter(app => ['pending', 'under_review'].includes(app.status)).length
           },
           applications: applications
@@ -184,6 +191,8 @@ const ManageApplications = () => {
       }
 
       setJobs(jobsData);
+      setJobTypes([...types]);
+      setEligibleYears([...years].sort((a, b) => a - b));
     } catch (error) {
       console.error('Error fetching jobs:', error);
       toast.error('Failed to fetch jobs data');
@@ -192,82 +201,130 @@ const ManageApplications = () => {
     }
   };
 
-  const sortedJobs = [...jobs].sort((a, b) => {
-    switch (sortBy) {
-      case 'deadline':
-        // Use the Date objects directly for comparison
-        // If no deadline, put it at the end
-        if (!a.deadlineDate) return 1;
-        if (!b.deadlineDate) return -1;
-        return a.deadlineDate - b.deadlineDate;
-      case 'applicants':
-        return b.stats.total - a.stats.total;
-      case 'shortlisted':
-        return b.stats.shortlisted - a.stats.shortlisted;
-      default:
-        return 0;
-    }
-  });
-
+  const filteredJobs = jobs
+    .filter(job => {
+      if (searchTerm) {
+        const lowerSearch = searchTerm.toLowerCase();
+        return job.company.toLowerCase().includes(lowerSearch) || job.position.toLowerCase().includes(lowerSearch);
+      }
+      return true;
+    })
+    .filter(job => {
+      if (selectedType !== 'all') {
+        return job.jobTypes === selectedType;
+      }
+      return true;
+    })
+    .filter(job => {
+      if (selectedYear) {
+        return job.eligibleBatch?.includes(selectedYear) || false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (!a.deadlineDate) return 1;
+      if (!b.deadlineDate) return -1;
+      return a.deadlineDate - b.deadlineDate;
+    });
 
   return (
     <div className="p-8 max-w-7xl mx-auto bg-gray-50 min-h-screen">
       <ToastContainer />
-      {/* Loading State */}
-      {loading ? (
-        <div className="flex justify-center items-center min-h-[300px]">
-          <LoadingSpinner size="large" text="Loading jobs..." />
-        </div>
-      ) : sortedJobs.length === 0 ? (
-        <NoData text="No jobs found." />
-      ) : (
-        <div className="space-y-0 ">
-          {/* Header Section */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              <div className="flex items-center space-x-3">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Job Applications Dashboard
-                </h1>
-              </div>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 bg-white border-2 border-gray-200 rounded-lg shadow-sm 
-                  hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 
-                  transition-all duration-200 cursor-pointer"
-              >
-                <option value="deadline">Sort by Deadline</option>
-                <option value="applicants">Sort by Applicants</option>
-                <option value="shortlisted">Sort by Shortlisted</option>
-              </select>
-            </div>
+      {/* Header Section - always shown with total count */}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Job Applications Dashboard
+            </h1>
+            <span className="text-lg text-gray-600">({filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'})</span>
           </div>
-
-          {/* Chat Modal */}
-          {showChatModal && selectedJobId && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg w-[70%] h-[88%] overflow-hidden">
-                <div className="p-2 flex justify-between items-center border-b">
-                  <h2 className="text-lg font-semibold">Chat with Applicants</h2>
-                  <button 
-                    onClick={() => setShowChatModal(false)}
-                    className="p-1 rounded hover:bg-gray-200"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <AdminChat 
-                  jobId={selectedJobId} 
-                  onClose={() => setShowChatModal(false)} 
-                />
-              </div>
+          <div className="flex items-center space-x-4">
+            <div className="relative w-full max-w-md">
+              <input
+                type="text"
+                placeholder="Search by company or position..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm pl-10
+                  hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200
+                  transition-all duration-200"
+              />
+              <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
             </div>
-          )}
-
-          {/* Table Section */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-            <div className="overflow-x-auto">
+            <button
+              onClick={() => navigate('/admin/jobpost')}
+              className="px-4 py-2 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition shadow-md"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* Filters Section - always shown, reduced size, no individual counts */}
+      <div className="my-6">
+        <div className="flex flex-wrap gap-2 mb-4">
+          {jobTypes.map(type => (
+            <button
+              key={type}
+              onClick={() => setSelectedType(type)}
+              className={`px-3 py-1 rounded-lg text-sm ${selectedType === type ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              {type === 'all' ? 'All' : type}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedYear(null)}
+            className={`px-3 py-1 rounded-lg text-sm ${selectedYear === null ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          >
+            All Years
+          </button>
+          {eligibleYears.map(year => (
+            <button
+              key={year}
+              onClick={() => setSelectedYear(year)}
+              className={`px-3 py-1 rounded-lg text-sm ${selectedYear === year ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Chat Modal */}
+      {showChatModal && selectedJobId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-[70%] h-[88%] overflow-hidden">
+            <div className="p-2 flex justify-between items-center border-b">
+              <h2 className="text-lg font-semibold">Chat with Applicants</h2>
+              <button
+                onClick={() => setShowChatModal(false)}
+                className="p-1 rounded hover:bg-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            <AdminChat
+              jobId={selectedJobId}
+              onClose={() => setShowChatModal(false)}
+            />
+          </div>
+        </div>
+      )}
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed top-0 left-[20%] right-0 bottom-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50">
+          <Loader />
+        </div>
+      )}
+      {/* Table Section or NoData */}
+      {!loading && (
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+          <div className="overflow-x-auto">
+            {filteredJobs.length === 0 ? (
+              <NoData text="No jobs found." />
+            ) : (
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-teal-100">
@@ -279,7 +336,7 @@ const ManageApplications = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sortedJobs.map(job => (
+                  {filteredJobs.map(job => (
                     <tr key={job.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <span className="text-lg font-semibold text-gray-900">{job.company}</span>
@@ -293,17 +350,17 @@ const ManageApplications = () => {
                             <div className="text-lg font-semibold">{job.stats.total}</div>
                             <div className="text-sm text-gray-500">Total</div>
                           </div>
-                          <div className="text-center">
+                          {/* <div className="text-center">
                             <div className="text-lg font-semibold text-green-600">{job.stats.shortlisted}</div>
                             <div className="text-sm text-gray-500">Shortlisted</div>
-                          </div>
-                          <div className="text-center">
+                          </div> */}
+                          {/* <div className="text-center">
                             <div className="text-lg font-semibold text-red-600">{job.stats.rejected}</div>
                             <div className="text-sm text-gray-500">Rejected</div>
-                          </div>
+                          </div> */}
                           <div className="text-center">
-                            <div className="text-lg font-semibold text-yellow-600">{job.stats.pending}</div>
-                            <div className="text-sm text-gray-500">Pending</div>
+                            <div className="text-lg font-semibold text-yellow-600">{job.stats.selected}</div>
+                            <div className="text-sm text-gray-500">Selected</div>
                           </div>
                         </div>
                       </td>
@@ -355,7 +412,7 @@ const ManageApplications = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            )}
           </div>
         </div>
       )}

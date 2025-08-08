@@ -1,18 +1,7 @@
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
-/**
- * Creates a notification in Firestore
- * @param {Object} notificationData - The notification data
- * @param {string} notificationData.title - Notification title
- * @param {string} notificationData.message - Detailed message (optional)
- * @param {string} notificationData.type - One of: job_posting, status_update, announcement, interview, reminder
- * @param {string} notificationData.recipientId - User ID of recipient (null for general notifications)
- * @param {boolean} notificationData.isGeneral - Whether this is a general notification
- * @param {string} notificationData.recipientType - Type of recipient (student, admin, company)
- * @param {string} notificationData.actionLink - Optional link to related content
- * @returns {Promise<string>} - The ID of the created notification
- */
+// Existing createNotification function (unchanged)
 export const createNotification = async (notificationData) => {
   try {
     const notification = {
@@ -29,9 +18,20 @@ export const createNotification = async (notificationData) => {
   }
 };
 
-/**
- * Creates a job posting notification for a student
- */
+// New createEventNotification function
+export const createEventNotification = async (studentId, title, message, actionLink = null) => {
+  return createNotification({
+    title,
+    message,
+    type: 'event',
+    recipientId: studentId,
+    isGeneral: false,
+    recipientType: 'student',
+    actionLink: actionLink || '/student/calendar'
+  });
+};
+
+// Existing notification functions (unchanged)
 export const createJobPostingNotification = async (studentId, jobData) => {
   return createNotification({
     title: `New Job Posting: ${jobData.position} at ${jobData.company}`,
@@ -44,9 +44,6 @@ export const createJobPostingNotification = async (studentId, jobData) => {
   });
 };
 
-/**
- * Creates an application status update notification
- */
 export const createStatusUpdateNotification = async (studentId, applicationData) => {
   const statusMessages = {
     under_review: 'Your application is now under review.',
@@ -68,9 +65,6 @@ export const createStatusUpdateNotification = async (studentId, applicationData)
   });
 };
 
-/**
- * Creates an interview notification
- */
 export const createInterviewNotification = async (studentId, interviewData) => {
   return createNotification({
     title: `Interview Scheduled: ${interviewData.job.position}`,
@@ -83,9 +77,6 @@ export const createInterviewNotification = async (studentId, interviewData) => {
   });
 };
 
-/**
- * Creates a general announcement for all students
- */
 export const createAnnouncementNotification = async (title, message, actionLink = null) => {
   return createNotification({
     title,
@@ -98,9 +89,6 @@ export const createAnnouncementNotification = async (title, message, actionLink 
   });
 };
 
-/**
- * Creates a reminder notification
- */
 export const createReminderNotification = async (studentId, title, message, actionLink = null) => {
   return createNotification({
     title,
@@ -113,9 +101,6 @@ export const createReminderNotification = async (studentId, title, message, acti
   });
 };
 
-/**
- * Creates a company action notification for admins
- */
 export const createCompanyActionNotification = async (title, message, actionLink = null) => {
   return createNotification({
     title,
@@ -128,9 +113,6 @@ export const createCompanyActionNotification = async (title, message, actionLink
   });
 };
 
-/**
- * Creates a job event notification for admins
- */
 export const createJobEventNotification = async (title, message, actionLink = null) => {
   return createNotification({
     title,
@@ -143,9 +125,6 @@ export const createJobEventNotification = async (title, message, actionLink = nu
   });
 };
 
-/**
- * Creates a student event notification for admins
- */
 export const createStudentEventNotification = async (title, message, actionLink = null) => {
   return createNotification({
     title,
@@ -158,9 +137,6 @@ export const createStudentEventNotification = async (title, message, actionLink 
   });
 };
 
-/**
- * Creates a system alert notification for admins
- */
 export const createSystemAlertNotification = async (title, message, actionLink = null) => {
   return createNotification({
     title,
@@ -173,9 +149,6 @@ export const createSystemAlertNotification = async (title, message, actionLink =
   });
 };
 
-/**
- * Creates a chat message notification for students
- */
 export const createChatMessageNotification = async (recipientId, jobData, senderName, message) => {
   return createNotification({
     title: `New message in ${jobData.position} chat`,
@@ -184,6 +157,6 @@ export const createChatMessageNotification = async (recipientId, jobData, sender
     recipientId: recipientId,
     isGeneral: false,
     recipientType: 'student',
-    actionLink: `/student/jobpost` // This will take them to the job posts page
+    actionLink: `/student/jobpost`
   });
 };

@@ -16,6 +16,7 @@ import {
   BarChart,
   Bell,
   Building,
+  Calendar, // Add Calendar icon import
   LogOut 
 } from 'lucide-react';
 
@@ -70,10 +71,11 @@ const Admin = () => {
     { name: "Notifications", path: "/admin/notifications", icon: <Bell size={20} /> },
     { name: "Analytics", path: "/admin/analytics", icon: <BarChart size={20} /> },
     { name: "Resources", path: "/admin/resources", icon: <BookOpen size={20} /> },
-    { name: "Job Posting", path: "/admin/jobpost", icon: <Briefcase size={20} /> },
+    // { name: "Job Posting", path: "/admin/jobpost", icon: <Briefcase size={20} /> },
     { name: "Manage Applications", path: "/admin/manage-applications", icon: <FileText size={20} /> },
     { name: "Students", path: "/admin/students", icon: <Users size={20} /> },
     { name: "Companies", path: "/admin/companies", icon: <Building size={20} /> },
+    { name: "Calendar", path: "/admin/calendar", icon: <Calendar size={20} /> }, // Add Calendar menu item
     { name: "Coding", path: "/admin/coding", icon: <Code size={20} /> },
     { name: "Profile", path: "/admin/profile", icon: <User size={20} /> },
     { name: "Gallery", path: "/admin/gallery", icon: <Image size={20} /> },

@@ -12,9 +12,11 @@ import {
   User, 
   Image, 
   Bell,
-  LogOut 
+  LogOut,
+  Calendar // Add Calendar icon import
 } from 'lucide-react';
 import LoadingSpinner from './components/ui/LoadingSpinner';
+import Loader from './loading'; // Add this import at the top
 
 const Student = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -50,7 +52,11 @@ const Student = () => {
     };
   }, []);
 
-  if (!userData) return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading profile..." /></div>;
+  if (!userData) return (
+    <div className="fixed inset-0 bg-gray-800 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+      <Loader />
+    </div>
+  );
 
   const menuItems = [
     { 
@@ -70,6 +76,7 @@ const Student = () => {
     { name: "Resources", path: "/student/resources", icon: <BookOpen size={20} /> },
     { name: "Job Posting", path: "/student/jobpost", icon: <Briefcase size={20} /> },
     { name: "Applications", path: "/student/applications", icon: <FileText size={20} /> },
+    { name: "Calendar", path: "/student/calendar", icon: <Calendar size={20} /> }, // Add Calendar menu item
     { name: "Coding", path: "/student/coding", icon: <Code size={20} /> },
     { name: "Profile", path: "/student/profile", icon: <User size={20} /> },
     { name: "Gallery", path: "/student/gallery", icon: <Image size={20} /> },

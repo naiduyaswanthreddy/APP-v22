@@ -6,7 +6,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, Link } from "react-router-dom";
 import { 
   User, 
-  Briefcase,  Award, 
+  Briefcase, 
+  Award, 
   Book, 
   Download,
 } from "lucide-react";
@@ -52,7 +53,6 @@ const Profile = () => {
   };
 
   const calculateCompletionPercentage = (data) => {
-    // Define required fields from each section with weights
     const requiredFields = {
       basic: ['name', 'email', 'mobile', 'rollNumber', 'batch', 'program', 'department', 'gender', 'birthday', 'address', 'city', 'state', 'pinCode'],
       academics: ['cgpa', 'skills', 'semesterData'],
@@ -63,12 +63,9 @@ const Profile = () => {
     let filledFields = 0;
     let totalFields = 0;
     
-    // Count filled fields with more accurate validation
     Object.keys(requiredFields).forEach(section => {
       requiredFields[section].forEach(field => {
         totalFields++;
-        
-        // More comprehensive check for different data types
         if (data[field] && 
             ((Array.isArray(data[field]) && data[field].length > 0) || 
              (typeof data[field] === 'string' && data[field].trim() !== '') ||
@@ -83,15 +80,9 @@ const Profile = () => {
     setCompletionPercentage(percentage);
   };
 
-  // Function to handle PDF export
   const handleExportPDF = () => {
     if (!userData) return;
-    
-    // Create a PDF document with user data
-    // This would typically use a library like react-pdf
     const pdfBlob = generatePDF(userData);
-    
-    // Create a download link
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
     link.href = url;
@@ -101,15 +92,11 @@ const Profile = () => {
     document.body.removeChild(link);
   };
 
-  // Function to handle print
   const handlePrint = () => {
     window.print();
   };
 
-  // Mock function for PDF generation - replace with actual implementation
   const generatePDF = (data) => {
-    // This would be implemented with a PDF library
-    // For now, return a mock blob
     return new Blob(['PDF content'], { type: 'application/pdf' });
   };
 
@@ -138,26 +125,8 @@ const Profile = () => {
           <div className="flex items-center bg-gray-100 px-3 py-2 rounded-lg">
             <div className="mr-2">
               <svg className="w-10 h-10">
-                <circle
-                  className="text-gray-300"
-                  strokeWidth="5"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="18"
-                  cx="20"
-                  cy="20"
-                />
-                <circle
-                  className="text-indigo-600"
-                  strokeWidth="5"
-                  strokeDasharray={`${completionPercentage * 1.13}, 113`}
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="18"
-                  cx="20"
-                  cy="20"
-                />
+                <circle className="text-gray-300" strokeWidth="5" stroke="currentColor" fill="transparent" r="18" cx="20" cy="20" />
+                <circle className="text-indigo-600" strokeWidth="5" strokeDasharray={`${completionPercentage * 1.13}, 113`} strokeLinecap="round" stroke="currentColor" fill="transparent" r="18" cx="20" cy="20" />
               </svg>
             </div>
             <div>
@@ -174,16 +143,17 @@ const Profile = () => {
             <Download size={16} />
             <span>Export PDF</span>
           </button>
-       
         </div>
       </div>
       
       {/* Profile Navigation */}
-      <div className="flex mb-6 overflow-x-auto">
-        <nav className="flex space-x-1 bg-white p-1 rounded-lg shadow w-full">
+      <div className="">
+        <nav className="flex gap-2 bg-gray-100 overflow-x-auto">
           <button
             onClick={() => setActiveTab("basic")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "basic" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "basic" ? "bg-white text-blue-600 border-t border-l border-r border-blue-500 -mb-px" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <User size={16} className="mr-2" />
             <span>Basic Info</span>
@@ -191,7 +161,9 @@ const Profile = () => {
           
           <button
             onClick={() => setActiveTab("academics")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "academics" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "academics" ? "bg-white text-green-600 border-t border-l border-r border-green-500 -mb-px" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <Book size={16} className="mr-2" />
             <span>Academics</span>
@@ -199,7 +171,9 @@ const Profile = () => {
           
           <button
             onClick={() => setActiveTab("career")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "career" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "career" ? "bg-white text-yellow-600 border-t border-l border-r border-yellow-500 -mb-px" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <Briefcase size={16} className="mr-2" />
             <span>Career</span>
@@ -207,7 +181,9 @@ const Profile = () => {
           
           <button
             onClick={() => setActiveTab("excellence")}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${activeTab === "excellence" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100"} transition-colors flex-1`}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "excellence" ? "bg-white text-red-600 border-t border-l border-r border-red-500 -mb-px" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
             <Award size={16} className="mr-2" />
             <span>Excellence</span>
@@ -216,31 +192,31 @@ const Profile = () => {
       </div>
       
       {/* Profile Content */}
-      <div className=" rounded-lg  overflow-hidden">
+      <div className={`bg-white rounded-lg shadow overflow-hidden p-6 ${activeTab === "basic" ? "border border-blue-500" : ""} ${activeTab === "academics" ? "border border-green-500" : ""} ${activeTab === "career" ? "border border-yellow-500" : ""} ${activeTab === "excellence" ? "border border-red-500" : ""}`}>
         {/* Basic Info Tab */}
         {activeTab === "basic" && (
-          <div className="p-0">
+          <div>
             <ProfileBasic userData={userData || {}} onUserDataChange={setUserData} />
           </div>
         )}
         
         {/* Academics Tab */}
         {activeTab === "academics" && (
-          <div className="p-0">
-            <ProfileAcademics />
+          <div>
+            <ProfileAcademics userData={userData || {}} onUserDataChange={setUserData} />
           </div>
         )}
         
         {/* Career Tab */}
         {activeTab === "career" && (
-          <div className="p-0">
+          <div>
             <ProfileCareer />
           </div>
         )}
         
         {/* Excellence Tab */}
         {activeTab === "excellence" && (
-          <div className="p-0">
+          <div>
             <ProfileExcellence />
           </div>
         )}
@@ -250,7 +226,7 @@ const Profile = () => {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 flex justify-around">
         <button
           onClick={() => setActiveTab("basic")}
-          className={`flex flex-col items-center p-2 ${activeTab === "basic" ? "text-indigo-600" : "text-gray-500"}`}
+          className={`flex flex-col items-center p-2 ${activeTab === "basic" ? "text-blue-600" : "text-gray-500"}`}
         >
           <User size={20} />
           <span className="text-xs mt-1">Basic</span>
@@ -258,7 +234,7 @@ const Profile = () => {
         
         <button
           onClick={() => setActiveTab("academics")}
-          className={`flex flex-col items-center p-2 ${activeTab === "academics" ? "text-indigo-600" : "text-gray-500"}`}
+          className={`flex flex-col items-center p-2 ${activeTab === "academics" ? "text-green-600" : "text-gray-500"}`}
         >
           <Book size={20} />
           <span className="text-xs mt-1">Academics</span>
@@ -266,7 +242,7 @@ const Profile = () => {
         
         <button
           onClick={() => setActiveTab("career")}
-          className={`flex flex-col items-center p-2 ${activeTab === "career" ? "text-indigo-600" : "text-gray-500"}`}
+          className={`flex flex-col items-center p-2 ${activeTab === "career" ? "text-yellow-600" : "text-gray-500"}`}
         >
           <Briefcase size={20} />
           <span className="text-xs mt-1">Career</span>
@@ -274,7 +250,7 @@ const Profile = () => {
         
         <button
           onClick={() => setActiveTab("excellence")}
-          className={`flex flex-col items-center p-2 ${activeTab === "excellence" ? "text-indigo-600" : "text-gray-500"}`}
+          className={`flex flex-col items-center p-2 ${activeTab === "excellence" ? "text-red-600" : "text-gray-500"}`}
         >
           <Award size={20} />
           <span className="text-xs mt-1">Excellence</span>

@@ -1,3 +1,4 @@
+// Remove the hardcoded categories array at the top
 import React, { useEffect, useState } from "react";
 import { db, auth } from "../../firebase";
 import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
@@ -5,18 +6,11 @@ import { FaRegBookmark, FaBookmark, FaBook } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify"; // Import toast
 import "react-toastify/dist/ReactToastify.css"; // Import CSS for toast
 
-const categories = [
-  "All",
-  "AI/ML",
-  "Web Development",
-  "UI/UX",
-  "Data Analyst",
-  "Cloud Computing",
-  "Programming Languages",
-];
+
 
 const Resources = () => {
   const [resources, setResources] = useState([]);
+  const [categories, setCategories] = useState(["All"]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredResources, setFilteredResources] = useState([]);
   const [latestResources, setLatestResources] = useState([]);
@@ -25,9 +19,21 @@ const Resources = () => {
   const [showBookmarked, setShowBookmarked] = useState(false);
 
   useEffect(() => {
+    fetchCategories();
     fetchResources();
-    fetchBookmarks(); // Fetch bookmarks when component mounts
+    fetchBookmarks();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "resource_categories"));
+      const fetchedCategories = querySnapshot.docs.map(doc => doc.data().name);
+      setCategories(["All", ...fetchedCategories]);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Failed to fetch categories");
+    }
+  };
 
   const fetchResources = async () => {
     const querySnapshot = await getDocs(collection(db, "resources"));

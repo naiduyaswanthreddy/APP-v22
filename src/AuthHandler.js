@@ -16,11 +16,12 @@ import Admin from "./Admin";
 
 // Then feature components
 import StudentResources from "./components/student/Resources";
-import StudentJobPost from "./components/student/JobPost";
 import StudentCoding from "./components/student/Coding";
 import StudentProfile from "./components/student/Profile";
 import StudentGallery from "./components/student/Gallery";
 import StudentApplications from "./components/student/Applications";
+import JobCards from "./components/student/JobCards";
+import JobDetails from "./components/student/JobDetails";
 
 // Admin Components
 import AdminResources from "./components/admin/Resources";
@@ -46,6 +47,12 @@ import CompanyMonitoring from "./components/admin/CompanyMonitoring";
 
 // Add import for Resume Maker
 import ResumeMaker from "./components/student/Resume maker/src/App";
+import Loader from './loading'; // Add this import at the top
+
+// Add this import with the other student components (around line 35)
+import StudentCalendar from "./components/student/Calendar";
+
+import AdminCalendar from "./components/admin/Calendar";
 
 function AuthHandler() {
   const navigate = useNavigate();
@@ -89,7 +96,11 @@ function AuthHandler() {
   }, [navigate]);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <div className="fixed inset-0 bg-gray-800 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+        <Loader />
+      </div>
+    );
   }
 
   const ProtectedRoute = ({ children, allowedRole }) => {
@@ -127,6 +138,8 @@ function AuthHandler() {
         <Route path="gallery" element={<AdminGallery />} />
         <Route path="notifications" element={<AdminNotifications />} />
         <Route path="chat" element={<AdminChat />} /> {/* Add this line */}
+        <Route path="calendar" element={<AdminCalendar />} />
+
         
         {/* Add the missing company routes */}
         <Route path="companies" element={<Companies />} />
@@ -142,7 +155,8 @@ function AuthHandler() {
       }>
         <Route index element={<StudentProfile />} />
         <Route path="resources" element={<StudentResources />} />
-        <Route path="jobpost" element={<StudentJobPost />} />
+        <Route path="jobpost" element={<JobCards />} />
+        <Route path="job/:jobId" element={<JobDetails />} />
         <Route path="applications" element={<StudentApplications />} />
         <Route path="coding" element={<StudentCoding />} />
         <Route path="profile" element={<StudentProfile />} />
@@ -150,6 +164,8 @@ function AuthHandler() {
         <Route path="notifications" element={<StudentNotifications />} />
         {/* Add the resume-maker route inside the student routes */}
         <Route path="resume-maker" element={<ResumeMaker />} />
+        // Add this route in the student routes section (around line 155)
+        <Route path="calendar" element={<StudentCalendar />} />
       </Route>
     </Routes>
   );

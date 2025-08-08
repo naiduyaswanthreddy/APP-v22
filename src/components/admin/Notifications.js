@@ -5,7 +5,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, User, Briefcase, AlertTriangle, Building } from 'lucide-react';
-import LoadingSpinner from '../ui/LoadingSpinner';
+import Loader from '../../loading'; // Add this import at the top
+
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -273,8 +274,9 @@ const Notifications = () => {
       </div>
       
       {loading ? (
-        <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="large" text="Loading notifications..." /></div>
-      ) : notifications.length === 0 ? (
+        <div className="fixed top-0 left-[20%] right-0 bottom-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50">
+        <Loader />
+        </div>      ) : notifications.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <Bell size={40} className="mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900">No notifications</h3>
