@@ -170,13 +170,19 @@ const JobPost = () => {
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
-        const jobsSnapshot = await getDocs(collection(db, 'jobs'));
+        const companiesSnapshot = await getDocs(collection(db, 'companies'));
         const companies = new Set();
+        companiesSnapshot.forEach(doc => {
+          if (doc.data().companyName) {
+            companies.add(doc.data().companyName);
+          }
+        });
+
+        const jobsSnapshot = await getDocs(collection(db, 'jobs'));
         const positions = new Set();
         const rounds = new Set();
         jobsSnapshot.forEach(doc => {
           const data = doc.data();
-          if (data.company) companies.add(data.company);
           if (data.position) positions.add(data.position);
           if (Array.isArray(data.rounds)) {
             data.rounds.forEach(round => {
@@ -640,10 +646,32 @@ const JobPost = () => {
       if (editingJobId) {
         const jobRef = doc(db, 'jobs', editingJobId);
         await updateDoc(jobRef, jobData);
+        // Update company job posting count and last job posted date
+        const companyQuery = query(collection(db, 'companies'), where('companyName', '==', jobData.company));
+        const companySnapshot = await getDocs(companyQuery);
+        if (!companySnapshot.empty) {
+          const companyDoc = companySnapshot.docs[0];
+          const companyRef = doc(db, 'companies', companyDoc.id);
+          await updateDoc(companyRef, {
+            jobPostingsCount: companyDoc.data().jobPostingsCount ? companyDoc.data().jobPostingsCount + 1 : 1,
+            lastJobPosted: serverTimestamp()
+          });
+        }
         toast.success('Job updated successfully!');
         navigate(`/admin/job-applications/${editingJobId}`);
       } else {
         const docRef = await addDoc(collection(db, 'jobs'), jobData);
+        // Update company job posting count and last job posted date
+        const companyQuery = query(collection(db, 'companies'), where('companyName', '==', jobData.company));
+        const companySnapshot = await getDocs(companyQuery);
+        if (!companySnapshot.empty) {
+          const companyDoc = companySnapshot.docs[0];
+          const companyRef = doc(db, 'companies', companyDoc.id);
+          await updateDoc(companyRef, {
+            jobPostingsCount: companyDoc.data().jobPostingsCount ? companyDoc.data().jobPostingsCount + 1 : 1,
+            lastJobPosted: serverTimestamp()
+          });
+        }
         console.log('Job created with ID:', docRef.id);
         if (jobForm.publishOption === 'Publish Now') {
           await createNotificationsForJob(docRef.id, jobData);
@@ -923,7 +951,7 @@ const JobPost = () => {
           `}</style>
           <AnimatedCard>
             <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
-              1. Basic Job Information
+              1. Company Overview
             </h3>
             <div className="space-y-4">
               <div className="relative" id="field-company">

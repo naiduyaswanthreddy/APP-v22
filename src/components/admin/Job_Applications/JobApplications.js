@@ -371,6 +371,42 @@ const JobApplications = () => {
       toast.error("Failed to delete job");
     }
   };
+  // Function to update company statistics when application status changes
+  const updateCompanyStats = async (companyName) => {
+    try {
+      if (!companyName) return;
+      const companyQuery = query(collection(db, 'companies'), where('companyName', '==', companyName));
+      const companySnapshot = await getDocs(companyQuery);
+      if (!companySnapshot.empty) {
+        const companyDoc = companySnapshot.docs[0];
+        const companyRef = doc(db, 'companies', companyDoc.id);
+
+        // Count total jobs posted by company
+        const jobsQuery = query(collection(db, 'jobs'), where('company', '==', companyName));
+        const jobsSnapshot = await getDocs(jobsQuery);
+        const jobCount = jobsSnapshot.size;
+
+        // Count total applications for company's jobs
+        let totalApplications = 0;
+        let selectedCount = 0;
+        for (const jobDoc of jobsSnapshot.docs) {
+          const applicationsQuery = query(collection(db, 'applications'), where('job_id', '==', jobDoc.id));
+          const applicationsSnapshot = await getDocs(applicationsQuery);
+          totalApplications += applicationsSnapshot.size;
+          selectedCount += applicationsSnapshot.docs.filter(app => app.data().status === 'selected').length;
+        }
+
+        await updateDoc(companyRef, {
+          jobPostingsCount: jobCount,
+          totalApplications: totalApplications,
+          selectedStudentsCount: selectedCount
+        });
+      }
+    } catch (error) {
+      console.error('Error updating company stats:', error);
+    }
+  };
+
   // Function to update round status with validation
   const handleRoundStatusUpdate = async (applicationId, newStatus) => {
     try {
@@ -392,6 +428,8 @@ const JobApplications = () => {
         lastModifiedBy: 'admin', // Track who made the change
         companyName: job?.company // Use the company name from the job details
       });
+      // Update company stats after status change
+      await updateCompanyStats(job?.company);
       // Update local state
       const updatedApplications = applications.map(app =>
         app.id === applicationId ? {
@@ -871,7 +909,7 @@ const JobApplications = () => {
                {/* Action Buttons */}
                <div className="flex gap-2 items-center">
                  {/* Total Applicants Display */}
-                 <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-emerald-500 border border-emerald-400 hover:border-emerald-500 transition-colors duration-200 font-semibold">
+                 <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-gray-1000 border border-emerald-500 hover:border-emerald-500 transition-colors duration-200 font-semibold">
                  <span className="text-lg font-semibold ">Total Applicants: {applications.length}</span>
                  </div>
                  <button
@@ -1136,7 +1174,10 @@ const JobApplications = () => {
                        </div>
                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
                          <span className="text-gray-600 font-medium">Salary/Stipend</span>
-                         <span className="text-gray-900 font-semibold">{job?.salary || job?.salaryStipend || 'N/A'}</span>
+                                          <p className="text-sl text-gray-900 font-semibold">
+                   {job?.minSalary && job?.maxSalary ? `${job.minSalary} - ${job.maxSalary} ${job.salaryUnit || ''}` : job?.salary || 'N/A'}
+                 </p>
+                    
                        </div>
                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
                          <span className="text-gray-600 font-medium">Application Deadline</span>
@@ -1164,11 +1205,8 @@ const JobApplications = () => {
                        </div>
                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
                          <span className="text-gray-600 font-medium">Job Type</span>
-                         <span className="text-gray-900 font-semibold">
-                           {Array.isArray(job?.jobTypes) && job.jobTypes.length > 0
-                             ? job.jobTypes.join(', ')
-                             : job?.jobType || 'N/A'}
-                         </span>
+                                        <p className="text-sl text-gray-900 font-semibold">{job?.jobTypes || 'N/A'}</p>
+
                        </div>
                        <div className="flex justify-between items-center py-2">
                          <span className="text-gray-600 font-medium">Experience</span>
@@ -1356,7 +1394,7 @@ const JobApplications = () => {
         <select
           value={selectedRoundTransition}
           onChange={(e) => handleRoundTransitionChange(e.target.value)}
-          className="w-full p-3 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+          className="w-full p-3 bg-white border-2 border-emerald-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
         >
           <option value="">Select a round transition</option>
           {availableRounds.map((transition, index) => (

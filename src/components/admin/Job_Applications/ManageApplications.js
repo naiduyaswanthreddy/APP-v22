@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, getDocs, doc, where, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, where, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -96,7 +96,7 @@ const ManageApplications = () => {
     setShowChatModal(true);
   };
 
-  const handleDeleteJob = async (jobId) => {
+const handleDeleteJob = async (jobId) => {
     try {
       if (window.confirm('Are you sure you want to delete this job?')) {
         await deleteDoc(doc(db, 'jobs', jobId));
@@ -108,6 +108,42 @@ const ManageApplications = () => {
       showToast('Failed to delete job', 'error');
     }
   };
+
+// New function to update company statistics when application status changes
+const updateCompanyStats = async (companyName) => {
+  try {
+    if (!companyName) return;
+    const companyQuery = query(collection(db, 'companies'), where('companyName', '==', companyName));
+    const companySnapshot = await getDocs(companyQuery);
+    if (!companySnapshot.empty) {
+      const companyDoc = companySnapshot.docs[0];
+      const companyRef = doc(db, 'companies', companyDoc.id);
+
+      // Count total jobs posted by company
+      const jobsQuery = query(collection(db, 'jobs'), where('company', '==', companyName));
+      const jobsSnapshot = await getDocs(jobsQuery);
+      const jobCount = jobsSnapshot.size;
+
+      // Count total applications for company's jobs
+      let totalApplications = 0;
+      let selectedCount = 0;
+      for (const jobDoc of jobsSnapshot.docs) {
+        const applicationsQuery = query(collection(db, 'applications'), where('job_id', '==', jobDoc.id));
+        const applicationsSnapshot = await getDocs(applicationsQuery);
+        totalApplications += applicationsSnapshot.size;
+        selectedCount += applicationsSnapshot.docs.filter(app => app.data().status === 'selected').length;
+      }
+
+      await updateDoc(companyRef, {
+        jobPostingsCount: jobCount,
+        totalApplications: totalApplications,
+        selectedStudentsCount: selectedCount
+      });
+    }
+  } catch (error) {
+    console.error('Error updating company stats:', error);
+  }
+};
 
   useEffect(() => {
     fetchJobs();

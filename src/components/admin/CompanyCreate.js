@@ -159,260 +159,271 @@ const CompanyCreate = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gray-100 p-6">
       <ToastContainer position="top-right" autoClose={3000} />
-      
-      {/* Add Back Button */}
-      <button 
-        onClick={() => navigate('/admin/companies')} 
-        className="flex items-center text-blue-600 hover:text-blue-800 mb-4"
-      >
-        <ArrowLeft size={16} className="mr-1" />
-        Back to Companies
-      </button>
-      
-      <h1 className="text-2xl font-bold mb-6">Create Company Account</h1>
-      
-      {createdCompany ? (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-green-600">Company Account Created Successfully!</h2>
-            <button 
-              onClick={() => setCreatedCompany(null)}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              Create Another
-            </button>
-          </div>
-          
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-semibold mb-2">Company Login Link:</h3>
-            <div className="flex items-center">
-              <code className="flex-1 bg-white p-3 rounded border">
-                {`${window.location.origin}/company-login?companyId=${createdCompany.id}`}
-              </code>
-              <button 
-                onClick={copyLoginLink}
-                className="ml-2 p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                title="Copy to clipboard"
+
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        {/* Header and Back Button */}
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <button
+            onClick={() => navigate('/admin/companies')}
+            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200"
+          >
+            <ArrowLeft size={20} className="mr-2" />
+            <span className="font-medium">Back to Companies</span>
+          </button>
+          <h1 className="text-3xl font-extrabold text-gray-800">Create Company Account</h1>
+        </div>
+
+        {createdCompany ? (
+          <div className="p-8">
+            <div className="bg-green-50 border border-green-200 text-green-800 p-5 rounded-lg mb-8 flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center">
+                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Company Account Created Successfully!
+              </h2>
+              <button
+                onClick={() => setCreatedCompany(null)}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
-                <Copy size={18} />
+                Create Another Company
               </button>
             </div>
-            <p className="text-sm text-gray-600 mt-2">
-              Share this link with the company to allow them to log in to their account.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-3">Company Details</h3>
-              <div className="space-y-2">
-                <p><strong>Name:</strong> {createdCompany.companyName}</p>
-                <p><strong>Email:</strong> {createdCompany.email}</p>
-                <p><strong>Industry:</strong> {createdCompany.industry}</p>
-                <p><strong>Website:</strong> {createdCompany.website}</p>
+
+            <div className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+              <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
+                <Copy size={18} className="mr-2" />
+                Company Login Link:
+              </h3>
+              <div className="flex items-center bg-white rounded-md border border-gray-300 pr-2">
+                <code className="flex-1 p-3 text-sm text-gray-700 overflow-auto whitespace-nowrap">
+                  {`${window.location.origin}/company-login?companyId=${createdCompany.id}`}
+                </code>
+                <button
+                  onClick={copyLoginLink}
+                  className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center"
+                  title="Copy to clipboard"
+                >
+                  <Copy size={18} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-3">
+                Share this link with the company to allow them to log in to their account.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h3 className="font-bold text-gray-700 mb-4 text-lg">Company Details</h3>
+                <div className="space-y-3 text-gray-700">
+                  <p><strong className="text-gray-900">Name:</strong> {createdCompany.companyName}</p>
+                  <p><strong className="text-gray-900">Email:</strong> {createdCompany.email}</p>
+                  <p><strong className="text-gray-900">Industry:</strong> {createdCompany.industry}</p>
+                  <p><strong className="text-gray-900">Website:</strong> {createdCompany.website}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-700 mb-4 text-lg">Assigned Permissions</h3>
+                <ul className="space-y-2">
+                  {Object.entries(createdCompany.permissions).map(([key, value]) => (
+                    <li key={key} className="flex items-center text-gray-700">
+                      <span className={`w-4 h-4 rounded-full mr-3 flex-shrink-0 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                      <span>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
-            
-            <div>
-              <h3 className="font-semibold mb-3">Assigned Permissions</h3>
-              <ul className="space-y-1">
-                {Object.entries(createdCompany.permissions).map(([key, value]) => (
-                  <li key={key} className="flex items-center">
-                    <span className={`w-5 h-5 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                    <span>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  </li>
-                ))}
-              </ul>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => navigate('/admin/companies')}
+                className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-semibold"
+              >
+                View All Companies
+              </button>
             </div>
           </div>
-          
-          <div className="mt-6 flex justify-end space-x-4">
-            <button
-              onClick={() => navigate('/admin/companies')}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-            >
-              View All Companies
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Create Company Account</h1>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="p-6 border-b">
-              <h2 className="text-lg font-semibold mb-4 flex items-center">
-                <Building size={20} className="mr-2" />
+        ) : (
+          <form onSubmit={handleSubmit} className="p-8 space-y-8">
+            {/* Login Credentials */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <Building size={24} className="mr-3 text-blue-600" />
                 Login Credentials
               </h2>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                   <input
                     type="email"
+                    id="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                     placeholder="company@example.com"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
                   <input
                     type="password"
+                    id="password"
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                     placeholder="Secure password"
                     required
                   />
                 </div>
               </div>
             </div>
-            
-            <div className="p-6 border-b">
-              <h2 className="text-lg font-semibold mb-4">Company Details</h2>
-              
-              <div className="space-y-4">
+
+            {/* Company Details */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Company Details</h2>
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                  <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
                   <input
                     type="text"
+                    id="companyName"
                     value={formData.companyName}
                     onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                    className="w-full p-2 border rounded-md"
-                    placeholder="Company Name"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                    placeholder="Acme Corporation"
                     required
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                    <label htmlFor="industry" className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
                     <input
                       type="text"
+                      id="industry"
                       value={formData.industry}
                       onChange={(e) => setFormData({...formData, industry: e.target.value})}
-                      className="w-full p-2 border rounded-md"
+                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                       placeholder="e.g. Technology, Finance, Healthcare"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                    <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">Website</label>
                     <input
                       type="url"
+                      id="website"
                       value={formData.website}
                       onChange={(e) => setFormData({...formData, website: e.target.value})}
-                      className="w-full p-2 border rounded-md"
-                      placeholder="https://example.com"
+                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                      placeholder="https://www.example.com"
                     />
                   </div>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea
+                    id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    className="w-full p-2 border rounded-md"
-                    placeholder="Brief description of the company"
-                    rows="3"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                    placeholder="Brief description of the company and its mission."
+                    rows="4"
                   ></textarea>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL (optional)</label>
+                  <label htmlFor="logo" className="block text-sm font-medium text-gray-700 mb-2">Logo URL (optional)</label>
                   <input
                     type="url"
+                    id="logo"
                     value={formData.logo}
                     onChange={(e) => setFormData({...formData, logo: e.target.value})}
-                    className="w-full p-2 border rounded-md"
-                    placeholder="https://example.com/logo.png"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                    placeholder="https://www.example.com/logo.png"
                   />
                 </div>
               </div>
             </div>
-            
-            <div className="p-6 border-b">
-              <h2 className="text-lg font-semibold mb-4">Permissions</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Permissions */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Permissions</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.keys(formData.permissions).map(permission => (
-                  <div key={permission} className="flex items-center">
+                  <div key={permission} className="flex items-center p-3 bg-gray-50 rounded-md border border-gray-200">
                     <input
                       type="checkbox"
                       id={permission}
                       checked={formData.permissions[permission]}
                       onChange={() => handlePermissionChange(permission)}
-                      className="h-4 w-4 text-blue-600 rounded"
+                      className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                     />
-                    <label htmlFor={permission} className="ml-2 text-gray-700">
+                    <label htmlFor={permission} className="ml-3 text-gray-800 font-medium cursor-pointer">
                       {permission.replace(/([A-Z])/g, ' $1').trim()}
                     </label>
                   </div>
                 ))}
               </div>
             </div>
-            
-            <div className="p-6 border-b">
-              <h2 className="text-lg font-semibold mb-4">Assign Job Postings</h2>
-              
+
+            {/* Assign Job Postings */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Assign Job Postings</h2>
               {jobs.length === 0 ? (
-                <p className="text-gray-500">No job postings available to assign.</p>
+                <p className="text-gray-500 italic">No job postings available to assign.</p>
               ) : (
-                <div className="max-h-60 overflow-y-auto border rounded-md">
+                <div className="max-h-80 overflow-y-auto border border-gray-300 rounded-md">
                   {jobs.map(job => (
-                    <div 
-                      key={job.id} 
-                      className="flex items-center p-3 hover:bg-gray-50 border-b last:border-b-0"
+                    <div
+                      key={job.id}
+                      className="flex items-center p-4 hover:bg-gray-50 border-b last:border-b-0 transition-colors duration-200"
                     >
                       <input
                         type="checkbox"
                         id={`job-${job.id}`}
                         checked={formData.selectedJobs.includes(job.id)}
                         onChange={() => handleJobSelection(job.id)}
-                        className="h-4 w-4 text-blue-600 rounded"
+                        className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                       />
-                      <label htmlFor={`job-${job.id}`} className="ml-2 flex-1">
-                        <div className="font-medium">{job.position} at {job.company}</div>
-                        <div className="text-sm text-gray-500">{job.location}</div>
+                      <label htmlFor={`job-${job.id}`} className="ml-4 flex-1 cursor-pointer">
+                        <div className="font-semibold text-gray-800">{job.position} at {job.company}</div>
+                        <div className="text-sm text-gray-600">{job.location}</div>
                       </label>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            
-            <div className="p-6 flex justify-end">
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-4 pt-4">
               <button
                 type="button"
                 onClick={() => navigate('/admin/companies')}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded mr-4 hover:bg-gray-300"
+                className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-semibold"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-semibold flex items-center justify-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading ? (
                   <>
-                    <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-white rounded-full"></span>
+                    <span className="animate-spin h-5 w-5 mr-3 border-t-2 border-b-2 border-white rounded-full"></span>
                     Creating...
                   </>
                 ) : 'Create Company Account'}
               </button>
             </div>
           </form>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };
