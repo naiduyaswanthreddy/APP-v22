@@ -137,6 +137,7 @@ const JobPost = () => {
     variablePay: '',
     bonuses: '',
     ppoPportunity: false,
+    bondRequired: false,
     bondDetails: '',
     rounds: [{ name: '' }],
     roundsDescription: '',
@@ -154,7 +155,11 @@ const JobPost = () => {
     attachments: [],
     newAttachmentName: '',
     newAttachmentLink: '',
-    companyLogo: ''
+    companyLogo: '',
+    externalLinks: [],
+    newExternalLinkLabel: '',
+    newExternalLinkUrl: '',
+    newExternalLinkMandatory: false
   });
 
   useEffect(() => {
@@ -287,7 +292,9 @@ const JobPost = () => {
           attachments: Array.isArray(jobData.attachments) ? jobData.attachments : [],
           newAttachmentName: '',
           newAttachmentLink: '',
-          companyLogo: jobData.companyLogo || ''
+          companyLogo: jobData.companyLogo || '',
+          externalLink: jobData.externalLink || '',
+          requireExternalLink: jobData.requireExternalLink || false
         };
         setJobForm(completeForm);
         toast.info("Job loaded for editing");
@@ -460,6 +467,9 @@ const JobPost = () => {
       } else if (jobForm.minSalary && parseFloat(value) < parseFloat(jobForm.minSalary)) {
         error = 'Maximum Stipend must be greater than or equal to Minimum Stipend';
       }
+    }
+    if (field === 'bondDetails' && jobForm.bondRequired && !value) {
+      error = 'Bond details are required when bond is required';
     }
     return error;
   };
@@ -1710,6 +1720,38 @@ const JobPost = () => {
                 </div>
               </div>
             )}
+            """            <div className="mb-4" id="field-bondRequired">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={jobForm.bondRequired}
+                  onChange={e => {
+                    const isChecked = e.target.checked;
+                    setJobForm({
+                      ...jobForm,
+                      bondRequired: isChecked,
+                      bondDetails: isChecked ? jobForm.bondDetails : ''
+                    });
+                  }}
+                  className="w-5 h-5 rounded text-blue-600"
+                />
+                <span className="text-sm font-medium text-gray-700">Bond Required?</span>
+              </label>
+            </div>
+
+            {jobForm.bondRequired && (
+              <div id="field-bondDetails">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bond Details</label>
+                <ReactQuill
+                  value={jobForm.bondDetails}
+                  onChange={value => setJobForm({...jobForm, bondDetails: value})}
+                  onBlur={() => handleBlur('bondDetails')}
+                  placeholder="Enter bond details..."
+                />
+                {touched.bondDetails && errors.bondDetails && <p className="text-red-600 text-sm mt-1">{errors.bondDetails}</p>}
+              </div>
+            )}
+
             <div id="field-bondDetails">
               <label className="block text-sm font-medium text-gray-700 mb-1">Bond Details</label>
               <ReactQuill
@@ -1718,7 +1760,7 @@ const JobPost = () => {
                 onBlur={() => handleBlur('bondDetails')}
                 placeholder="Bond Details (Rich text support)"
               />
-            </div>
+            </div>""
           </AnimatedCard>
           <AnimatedCard>
             <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
@@ -2110,6 +2152,90 @@ const JobPost = () => {
                 disabled={!jobForm.newAttachmentName || !jobForm.newAttachmentLink}
               >
                 Add Attachment
+              </button>
+            </div>
+          </AnimatedCard>
+          <AnimatedCard>
+            <h3 className="text-xl font-semibold text-gray-700 mb-4 pl-4 border-l-4 border-blue-500 flex items-center">
+              9. External Links & Resources
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">External Links</label>
+              <div className="space-y-3 mb-3">
+                {jobForm.externalLinks.map((link, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg">
+                    <div className="flex-1">
+                      <div className="font-medium">{link.label}</div>
+                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                        {link.url}
+                      </a>
+                      {link.mandatoryBeforeApply && (
+                        <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">
+                          Mandatory before apply
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newLinks = jobForm.externalLinks.filter((_, i) => i !== index);
+                        setJobForm({...jobForm, externalLinks: newLinks});
+                      }}
+                      className="text-red-500 hover:text-red-700 transition"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  value={jobForm.newExternalLinkLabel}
+                  onChange={e => setJobForm({...jobForm, newExternalLinkLabel: e.target.value})}
+                  placeholder="Link Label"
+                />
+                <input
+                  type="url"
+                  className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  value={jobForm.newExternalLinkUrl}
+                  onChange={e => setJobForm({...jobForm, newExternalLinkUrl: e.target.value})}
+                  placeholder="https://example.com"
+                />
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={jobForm.newExternalLinkMandatory}
+                      onChange={e => setJobForm({...jobForm, newExternalLinkMandatory: e.target.checked})}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Mandatory</span>
+                  </label>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (jobForm.newExternalLinkLabel && jobForm.newExternalLinkUrl) {
+                    setJobForm({
+                      ...jobForm,
+                      externalLinks: [...jobForm.externalLinks, {
+                        label: jobForm.newExternalLinkLabel,
+                        url: jobForm.newExternalLinkUrl,
+                        mandatoryBeforeApply: jobForm.newExternalLinkMandatory
+                      }],
+                      newExternalLinkLabel: '',
+                      newExternalLinkUrl: '',
+                      newExternalLinkMandatory: false
+                    });
+                  }
+                }}
+                className="mt-3 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                disabled={!jobForm.newExternalLinkLabel || !jobForm.newExternalLinkUrl}
+              >
+                Add External Link
               </button>
             </div>
           </AnimatedCard>

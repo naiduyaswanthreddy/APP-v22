@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, writeBatch, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { createStatusUpdateNotification } from '../../utils/notificationHelpers';
+import { createStatusUpdateNotification, createNotification } from '../../utils/notificationHelpers';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import Loader from '../../loading';
 
@@ -36,6 +36,7 @@ const Applications = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [isPlaced, setIsPlaced] = useState(false);
 
   useEffect(() => {
     fetchApplications();
@@ -48,7 +49,9 @@ const Applications = () => {
 
       // Fetch student data
       const studentDoc = await getDoc(doc(db, 'students', user.uid));
-      const studentSkills = studentDoc.data()?.skills || [];
+      const studentData = studentDoc.data();
+      const studentSkills = studentData?.skills || [];
+      setIsPlaced(studentData?.offerDecision === 'Accepted');
 
       const applicationsRef = collection(db, 'applications');
       const q = query(applicationsRef, where('student_id', '==', user.uid));
@@ -82,21 +85,33 @@ const Applications = () => {
             job: jobData,
             skillMatch: skillMatch,
             currentRound: currentRound,
-            rounds: applicationData.student?.rounds || {}
+            rounds: applicationData.student?.rounds || {},
+            offerDecision: applicationData.offerDecision || null,
+            decisionDate: applicationData.decisionDate || null
           });
         }
       }
 
-      console.log('Fetched applications with skill match:', applicationsData);
       setApplications(applicationsData);
       
-      // Check for status updates
+      // Check for status updates and selection notifications
       const lastFetchTime = localStorage.getItem('lastApplicationsFetchTime');
       if (lastFetchTime) {
         const lastFetchDate = new Date(parseInt(lastFetchTime, 10));
         applicationsData.forEach(app => {
           if (app.statusUpdatedAt && app.statusUpdatedAt.toDate() > lastFetchDate) {
             createStatusUpdateNotification(user.uid, app);
+          }
+          if (app.rounds[app.currentRound] === 'selected' && !app.offerDecision) {
+            createNotification({
+              userId: user.uid,
+              type: 'selection',
+              message: `Congratulations! You have been selected for ${app.job.position} at ${app.job.company}. Please accept or reject your offer.`,
+              action: {
+                label: 'View Offer',
+                url: `/applications`
+              }
+            });
           }
         });
       }
@@ -150,17 +165,117 @@ const Applications = () => {
     return Math.min(100, Math.max(0, progress));
   };
 
-  const filteredApplications = applications
-    .filter(app => filter === 'all' ? true : app.rounds[app.currentRound] === filter)
-    .sort((a, b) => {
-      if (a.rounds[a.currentRound] === 'withdrawn' && b.rounds[b.currentRound] !== 'withdrawn') return 1;
-      if (a.rounds[a.currentRound] !== 'withdrawn' && b.rounds[b.currentRound] === 'withdrawn') return -1;
-      
-      if (sortBy === 'newest') return b.applied_at - a.applied_at;
-      if (sortBy === 'oldest') return a.applied_at - b.applied_at;
-      if (sortBy === 'company') return a.job.company.localeCompare(b.job.company);
-      return 0;
-    });
+  const handleAcceptOffer = async (applicationId) => {
+    if (!window.confirm(
+      "Are you sure you want to accept this offer? You will be marked as placed and may not be eligible for other jobs."
+    )) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/accept-offer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to accept offer');
+      }
+
+      const batch = writeBatch(db);
+      const applicationRef = doc(db, 'applications', applicationId);
+      const studentRef = doc(db, 'students', auth.currentUser.uid);
+
+      batch.update(applicationRef, {
+        offerDecision: 'Accepted',
+        decisionDate: serverTimestamp(),
+        lastModifiedBy: 'student'
+      });
+
+      batch.update(studentRef, {
+        offerDecision: 'Accepted',
+        placedJobId: applicationId
+      });
+
+      await batch.commit();
+
+      setApplications(applications.map(app =>
+        app.id === applicationId ? {
+          ...app,
+          offerDecision: 'Accepted',
+          decisionDate: new Date()
+        } : app
+      ));
+
+      setIsPlaced(true);
+
+      createNotification({
+        userId: auth.currentUser.uid,
+        type: 'acceptance',
+        message: `You have successfully accepted the offer from ${applications.find(app => app.id === applicationId).job.company}. Congratulations!`
+      });
+
+      toast.success("Offer accepted successfully!");
+    } catch (error) {
+      console.error("Error accepting offer:", error);
+      toast.error("Error accepting offer!");
+    }
+  };
+
+  const handleRejectOffer = async (applicationId) => {
+    if (!window.confirm(
+      "Are you sure you want to reject this offer? This will be counted towards your rejection limit."
+    )) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/reject-offer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reject offer');
+      }
+
+      const batch = writeBatch(db);
+      const applicationRef = doc(db, 'applications', applicationId);
+
+      batch.update(applicationRef, {
+        offerDecision: 'Rejected',
+        decisionDate: serverTimestamp(),
+        lastModifiedBy: 'student'
+      });
+
+      await batch.commit();
+
+      setApplications(applications.map(app =>
+        app.id === applicationId ? {
+          ...app,
+          offerDecision: 'Rejected',
+          decisionDate: new Date()
+        } : app
+      ));
+
+      createNotification({
+        userId: auth.currentUser.uid,
+        type: 'rejection',
+        message: `You have rejected the offer from ${applications.find(app => app.id === applicationId).job.company}. You may continue applying for other opportunities.`
+      });
+
+      toast.success("Offer rejected successfully!");
+    } catch (error) {
+      console.error("Error rejecting offer:", error);
+      toast.error("Error rejecting offer!");
+    }
+  };
 
   const handleWithdraw = async (applicationId) => {
     if (!window.confirm(
@@ -177,29 +292,18 @@ const Applications = () => {
           toast.error("Application not found");
           return;
         }
-        const currentRound = application.currentRound;
-        
-        const batch = writeBatch(db);
+
         const applicationRef = doc(db, 'applications', applicationId);
-        const studentRef = doc(db, 'students', user.uid);
         
-        // Update rounds map
-        const updatedRounds = {
-          ...application.rounds,
-          [currentRound]: 'withdrawn'
-        };
-        
-        batch.update(applicationRef, {
-          'student.rounds': updatedRounds,
-          withdrawnAt: serverTimestamp(),
-          lastModifiedBy: 'student'
+        // Update the application status to 'withdrawn'
+        await updateDoc(applicationRef, {
+          status: 'withdrawn',
+          withdrawn_at: serverTimestamp(),
+          'rounds.pending': 'withdrawn' // Or the appropriate current round
         });
-        
-        batch.update(studentRef, {
-          rounds: updatedRounds
-        });
-        
+
         // Update job's applicants and filledPositions
+        const batch = writeBatch(db);
         const jobRef = doc(db, 'jobs', application.job_id || application.jobId);
         const jobDoc = await getDoc(jobRef);
         
@@ -224,12 +328,10 @@ const Applications = () => {
         await batch.commit();
         
         // Update local state
-        setApplications(applications.map(app =>
-          app.id === applicationId ? {
-            ...app,
-            rounds: updatedRounds,
-            withdrawnAt: new Date()
-          } : app
+        setApplications(applications.map(app => 
+          app.id === applicationId 
+            ? { ...app, status: 'withdrawn', rounds: { ...app.rounds, [app.currentRound]: 'withdrawn' } }
+            : app
         ));
         
         toast.success("Application withdrawn successfully!");
@@ -240,10 +342,29 @@ const Applications = () => {
     }
   };
 
+  const filteredApplications = applications
+    .filter(app => filter === 'all' ? true : app.rounds[app.currentRound] === filter)
+    .sort((a, b) => {
+      if (a.rounds[a.currentRound] === 'withdrawn' && b.rounds[b.currentRound] !== 'withdrawn') return 1;
+      if (a.rounds[a.currentRound] !== 'withdrawn' && b.rounds[b.currentRound] === 'withdrawn') return -1;
+      
+      if (sortBy === 'newest') return b.applied_at - a.applied_at;
+      if (sortBy === 'oldest') return a.applied_at - b.applied_at;
+      if (sortBy === 'company') return a.job.company.localeCompare(b.job.company);
+      return 0;
+    });
+
   return (
     <div className="p-6 space-y-6">
       <ToastContainer />
       
+      {/* Placement Banner */}
+      {isPlaced && (
+        <div className="bg-green-100 text-green-800 p-4 rounded-lg mb-6">
+          You are placed! You cannot apply to other jobs.
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex gap-4 mb-6">
         <select 
@@ -284,6 +405,19 @@ const Applications = () => {
                 <span className="text-3xl font-semibold text-red-600">Withdrawn</span>
               </div>
             )}
+
+            {/* Offer Decision Banner */}
+            {application.rounds[application.currentRound] === 'selected' && application.offerDecision === 'Accepted' && (
+              <div className="bg-green-100 text-green-800 p-4 rounded-lg mb-4">
+                You have accepted this offer
+              </div>
+            )}
+            {application.rounds[application.currentRound] === 'selected' && application.offerDecision === 'Rejected' && (
+              <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-4">
+                You have rejected this offer
+              </div>
+            )}
+
             {/* Header */}
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -295,18 +429,34 @@ const Applications = () => {
               </div>
             </div>
 
+            {/* Offer Decision Panel */}
+            {application.rounds[application.currentRound] === 'selected' && !application.offerDecision && (
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <p className="text-blue-800 mb-4">You have been selected for this role. Please confirm your decision.</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button 
+                    onClick={() => handleAcceptOffer(application.id)}
+                    className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  >
+                    ✅ Accept Offer
+                  </button>
+                  <button 
+                    onClick={() => handleRejectOffer(application.id)}
+                    className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    ❌ Reject Offer
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Status Progress Bar with Dots */}
             <div className="mb-4 relative h-8">
-              {/* Background Bar */}
               <div className="absolute top-1/2 transform -translate-y-1/2 w-full bg-gray-200 rounded-full h-2.5"></div>
-
-              {/* Filled Progress */}
               <div
                 className="absolute top-1/2 transform -translate-y-1/2 bg-pink-500 h-2.5 rounded-full transition-all duration-500"
                 style={{ width: `${getStatusProgress(application.rounds, application.currentRound, application.job.rounds)}%` }}
               ></div>
-
-              {/* Dots */}
               <div className="absolute top-1/2 transform -translate-y-1/2 left-0 w-full flex justify-between items-center">
                 {getStatusProgressPoints(application.rounds, application.currentRound, application.job.rounds).map((point, index) => (
                   <div
@@ -362,14 +512,14 @@ const Applications = () => {
             </div>
 
             {/* Admin Notes */}
-              {application.feedback && (
-                <div className="mt-0 p-1 bg-blue-0 rounded">
-                  <p className="text-sm font-medium text-blue-800">Admin Note:</p>
-                  <p className="text-sm text-blue-700 break-words whitespace-pre-line">
-                    {application.feedback}
-                  </p>
-                </div>
-              )}
+            {application.feedback && (
+              <div className="mt-4 p-4 bg-blue-50 rounded">
+                <p className="text-sm font-medium text-blue-800">Admin Note:</p>
+                <p className="text-sm text-blue-700 break-words whitespace-pre-line">
+                  {application.feedback}
+                </p>
+              </div>
+            )}
           </div>
         ))}
 

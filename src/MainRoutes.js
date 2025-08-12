@@ -13,6 +13,7 @@ import JobApplications from './components/admin/JobApplications';
 import AdminChat from './components/admin/AdminChat';
 import AdminCalendar from './components/admin/Calendar'; // Import AdminCalendar
 import StudentCalendar from './components/student/Calendar'; // Import StudentCalendar
+import PlacedStudents from './components/admin/PlacedStudents'; // Import PlacedStudents
 
 // Import company-related components
 import Companies from './components/admin/Companies';
@@ -42,6 +43,9 @@ function MainRoutes() {
         <Route path="companies" element={<Companies />} />
         <Route path="companies/create" element={<CompanyCreate />} />
         <Route path="companies/monitor" element={<CompanyMonitoring />} />
+        
+        {/* Placed Students route */}
+        <Route path="placed-students" element={<PlacedStudents />} />
       </Route>
       
       {/* Company routes */}

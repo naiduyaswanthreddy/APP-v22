@@ -74,8 +74,54 @@ const Companies = () => {
         id: doc.id,
         ...doc.data()
       }));
-      
-      setCompanies(companiesList);
+
+      const companiesWithStats = await Promise.all(companiesList.map(async company => {
+        const jobsRef = collection(db, 'jobs');
+        // Query jobs by company Name, as confirmed from data
+        const jobsQuery = query(jobsRef, where('company', '==', company.companyName));
+        const jobsSnapshot = await getDocs(jobsQuery);
+        const companyJobs = jobsSnapshot.docs.map(doc => doc.data());
+
+        const totalJobsPosted = companyJobs.length;
+        let highestCTCOffered = 0;
+        let totalCTCs = 0;
+
+        companyJobs.forEach(job => {
+          let ctcValue = 0;
+          if (job.ctc) {
+            // Assuming CTC is in Lakhs Per Annum (LPA) if not specified
+            if (typeof job.ctc === 'string') {
+              const ctcMatch = job.ctc.match(/(\d+(\.\d+)?)\s*LPA/i);
+              if (ctcMatch && ctcMatch[1]) {
+                ctcValue = parseFloat(ctcMatch[1]) * 100000; // Convert LPA to yearly
+              } else {
+                 // Attempt to parse as number and assume yearly if no unit
+                 const numCtc = parseFloat(job.ctc);
+                 if (!isNaN(numCtc)) ctcValue = numCtc;
+              }
+            } else if (typeof job.ctc === 'number') {
+               ctcValue = job.ctc; // Assume number is already yearly or needs no conversion based on app logic
+            }
+          } else if (job.salary) {
+              // Assuming salary is also a yearly figure or similar unit if no complex structure
+               const numSalary = parseFloat(job.salary);
+                 if (!isNaN(numSalary)) ctcValue = numSalary;
+          }
+          if (ctcValue > highestCTCOffered) highestCTCOffered = ctcValue;
+          totalCTCs += ctcValue;
+        });
+
+        const averageCTCOffered = totalJobsPosted > 0 ? totalCTCs / totalJobsPosted : 0;
+
+        return {
+          ...company,
+          totalJobsPosted,
+          highestCTCOffered,
+          averageCTCOffered
+        };
+      }));
+
+      setCompanies(companiesWithStats);
     } catch (error) {
       console.error('Error fetching companies:', error);
       toast.error('Error loading companies');
@@ -186,7 +232,7 @@ const Companies = () => {
         
         // Fetch all jobs for this company
         const jobsRef = collection(db, 'jobs');
-        const jobsQuery = query(jobsRef, where('companyName', '==', company.companyName));
+        const jobsQuery = query(jobsRef, where('company', '==', company.companyName));
         const jobsSnapshot = await getDocs(jobsQuery);
         
         const jobsList = jobsSnapshot.docs.map(doc => ({
@@ -376,7 +422,12 @@ const Companies = () => {
 
             <div className="p-6">
               {activeTab === 'overview' && (
-                <RecruitmentOverview companyId={company.id} />
+                <RecruitmentOverview
+                  companyId={company.id}
+                  totalJobsPosted={company.totalJobsPosted}
+                  highestCTCOffered={company.highestCTCOffered}
+                  averageCTCOffered={company.averageCTCOffered}
+                />
               )}
 
               {activeTab === 'jobs' && (
@@ -713,6 +764,22 @@ const Companies = () => {
                     <div className="flex items-center text-gray-500">
                       <Calendar size={14} className="mr-2" />
                       Founded {company.foundedYear}
+                    </div>
+                  </div>
+
+                  {/* Display calculated statistics */}
+                  <div className="mt-4 space-y-2 text-sm">
+                    <div className="flex items-center text-gray-700">
+                      <Briefcase size={14} className="mr-2" />
+                      Total Jobs Posted: <span className="font-semibold ml-1">{company.totalJobsPosted || 0}</span>
+</div>
+                    <div className="flex items-center text-gray-700">
+                      <TrendingUp size={14} className="mr-2" />
+                      Highest CTC: <span className="font-semibold ml-1">₹{company.highestCTCOffered?.toLocaleString() || 'N/A'}</span>
+                    </div>
+                     <div className="flex items-center text-gray-700">
+ <DollarSign size={14} className="mr-2" />
+                      Average CTC: <span className="font-semibold ml-1">₹{company.averageCTCOffered?.toLocaleString() || 'N/A'}</span>
                     </div>
                   </div>
 

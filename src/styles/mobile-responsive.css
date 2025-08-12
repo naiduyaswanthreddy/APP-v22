@@ -1,0 +1,222 @@
+    /* Mobile Responsive Styles for Student Login Section */
+
+/* Base mobile styles */
+@media (max-width: 767px) {
+  /* Hide desktop sidebar */
+  .desktop-sidebar {
+    display: none !important;
+  }
+
+  /* Ensure mobile components are visible */
+  .mobile-only {
+    display: block !important;
+  }
+
+  /* Touch-friendly tap targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Ensure content doesn't get hidden by bottom nav */
+  .content-with-bottom-nav {
+    padding-bottom: 80px;
+  }
+
+  /* Smooth transitions for sidebar */
+  .sidebar-transition {
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .sidebar-hidden {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-visible {
+    transform: translateX(0);
+  }
+
+  /* Bottom navigation styles */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    min-height: 60px;
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .bottom-nav-item.active {
+    color: #4f46e5;
+  }
+
+  .bottom-nav-item:hover {
+    color: #4f46e5;
+  }
+
+  .bottom-nav-icon {
+    margin-bottom: 2px;
+  }
+
+  .bottom-nav-label {
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+
+  /* Hamburger menu styles */
+  .hamburger-menu {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .hamburger-menu:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  /* Sidebar overlay */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .sidebar-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Responsive typography */
+  .responsive-text {
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+  }
+
+  /* Responsive spacing */
+  .responsive-padding {
+    padding: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  /* Ensure images are responsive */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Responsive grid */
+  .responsive-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .responsive-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Responsive flex */
+  .responsive-flex {
+    flex-direction: column;
+  }
+
+  @media (min-width: 640px) {
+    .responsive-flex {
+      flex-direction: row;
+    }
+  }
+
+  /* Touch feedback */
+  .touch-feedback {
+    transition: transform 0.1s ease;
+  }
+
+  .touch-feedback:active {
+    transform: scale(0.98);
+  }
+
+  /* Focus styles for accessibility */
+  .focus-visible:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .bottom-nav-item {
+      border-top: 2px solid transparent;
+    }
+    
+    .bottom-nav-item.active {
+      border-top-color: currentColor;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar-transition,
+    .touch-feedback,
+    .bottom-nav-item {
+      transition: none;
+    }
+  }
+}
+
+/* Small mobile adjustments */
+@media (max-width: 375px) {
+  .bottom-nav-label {
+    font-size: 0.6875rem;
+  }
+  
+  .bottom-nav-item {
+    padding: 6px 2px;
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-width: 767px) and (orientation: landscape) {
+  .bottom-nav {
+    position: relative;
+  }
+  
+  .content-with-bottom-nav {
+    padding-bottom: 0;
+  }
+}
+
+/* Print styles */
+@media print {
+  .bottom-nav,
+  .mobile-header,
+  .sidebar-overlay {
+    display: none !important;
+  }
+}

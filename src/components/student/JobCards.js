@@ -1148,12 +1148,21 @@ onClick={() => {
                               View Selected
                             </button>
                           ) : isApplied ? (
-                            <button
-                              disabled
-                              className="flex-1 px-4 py-2 bg-green-100 text-green-800 rounded-lg cursor-not-allowed"
-                            >
-                              Applied
-                            </button>
+                            applicationStatuses[job.id] === 'withdrawn' ? (
+                              <button
+                                disabled
+                                className="flex-1 px-4 py-2 bg-red-100 text-red-800 rounded-lg cursor-not-allowed"
+                              >
+                                Withdrawn
+                              </button>
+                            ) : (
+                              <button
+                                disabled
+                                className="flex-1 px-4 py-2 bg-green-100 text-green-800 rounded-lg cursor-not-allowed"
+                              >
+                                Applied
+                              </button>
+                            )
                           ) : (
                             !isSaved && (
                               <button

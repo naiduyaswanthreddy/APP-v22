@@ -215,7 +215,7 @@ const Notifications = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="px-2 sm:px-6 py-6">
       <ToastContainer />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

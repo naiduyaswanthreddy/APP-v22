@@ -53,6 +53,8 @@ import Loader from './loading'; // Add this import at the top
 import StudentCalendar from "./components/student/Calendar";
 
 import AdminCalendar from "./components/admin/Calendar";
+import PlacedStudents from './components/admin/PlacedStudents'; // Import PlacedStudents
+
 
 function AuthHandler() {
   const navigate = useNavigate();
@@ -139,6 +141,8 @@ function AuthHandler() {
         <Route path="notifications" element={<AdminNotifications />} />
         <Route path="chat" element={<AdminChat />} /> {/* Add this line */}
         <Route path="calendar" element={<AdminCalendar />} />
+        <Route path="placed-students" element={<PlacedStudents />} />
+
 
         
         {/* Add the missing company routes */}

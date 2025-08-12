@@ -105,7 +105,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="container mx-auto px-0 sm:px-4 py-6 max-w-6xl">
       <ToastContainer position="top-right" autoClose={3000} />
       
       {/* Profile Header with Completion Percentage */}

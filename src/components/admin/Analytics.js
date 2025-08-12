@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, Briefcase, FileText, CheckCircle, 
   TrendingUp, Building, Clock, Download, Filter, 
-  Section
+  Section, UserCheck
 } from 'lucide-react';
 import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -525,6 +525,13 @@ const Analytics = () => {
             onClick={() => setShowViews(true)}
           >
             <span className="mr-2">Views</span>
+          </button>
+          <button
+            className="flex items-center px-4 py-2 border rounded bg-green-600 text-white shadow hover:bg-green-700"
+            onClick={() => window.location.href = '/admin/placed-students'}
+          >
+            <UserCheck className="mr-2" size={18} />
+            Placed Students
           </button>
         </div>
         {/* Removed student and company statistics cards here */}
