@@ -27,6 +27,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import JobChat from './JobChat';
+import { LinkIcon } from 'lucide-react';
 import Loader from '../../loading'; // Add this import at the top
 import { IndianRupee } from "lucide-react";
 
@@ -52,7 +53,7 @@ const JobDetails = () => {
   const [showChatPanel, setShowChatPanel] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
   const [activeTab, setActiveTab] = useState('details'); // New state for tab navigation
-  const [bondAgreed, setBondAgreed] = useState(false);
+  const [linkVisited, setLinkVisited] = useState({});
 
   useEffect(() => {
     if (jobId) {
@@ -105,6 +106,15 @@ const JobDetails = () => {
           interviewDateTime: jobSnap.data().interviewDateTime ? new Date(jobSnap.data().interviewDateTime).toLocaleString() : 'Not scheduled'
         };
         setSelectedJob(jobData);
+
+        // Initialize linkVisited state for mandatory links
+        const initialLinkVisited = {};
+        (jobData.externalLinks || []).forEach(link => {
+          if (link.mandatoryBeforeApply) {
+            initialLinkVisited[link.url] = false;
+          }
+        });
+        setLinkVisited(initialLinkVisited);
       } else {
         toast.error("Job not found!");
         navigate('/student/jobs');
@@ -199,6 +209,14 @@ const JobDetails = () => {
     }
   };
 
+  const handleLinkClick = (url, isMandatory) => {
+    if (isMandatory) {
+      setLinkVisited(prev => ({ ...prev, [url]: true }));
+    }
+    window.open(url, '_blank');
+  };
+
+
   const handleSaveJob = async (jobId) => {
     try {
       const user = auth.currentUser;
@@ -246,8 +264,7 @@ const JobDetails = () => {
           student_id: user.uid,
           status: 'pending',
           applied_at: serverTimestamp(),
-          screening_answers: screeningAnswers,
-          bondAgreed: selectedJob.bondRequired ? bondAgreed : null
+          screening_answers: screeningAnswers
         });
         
         setAppliedJobs([...appliedJobs, selectedJob.id]);
@@ -357,6 +374,10 @@ const JobDetails = () => {
     return reasons;
   };
 
+  const areAllMandatoryLinksVisited = () => {
+    const mandatoryLinks = (selectedJob?.externalLinks || []).filter(link => link.mandatoryBeforeApply);
+    return mandatoryLinks.every(link => linkVisited[link.url]);
+  };
 
 
 
@@ -572,7 +593,7 @@ case 'multiple-choice':
   };
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-0 max-w-6xl">
+    <div className="container mx-auto px-4 py-0 max-w-6xl">
       <ToastContainer style={{ zIndex: 9999 }} />
       
       {/* Back button */}
@@ -587,7 +608,7 @@ case 'multiple-choice':
       {/* Main content card */}
       <div className="bg-white rounded-xl shadow-xl overflow-hidden">
         {/* Header section */}
-          <div className="relative bg-gradient-to-r from-slate-300 to-slate-400 p-4 sm:p-8 text-gray-800 rounded-b-lg">
+        <div className="relative bg-gradient-to-r from-slate-300 to-slate-400 p-8 text-gray-800">
 
 
           <div className="flex justify-between items-start">
@@ -615,10 +636,10 @@ case 'multiple-choice':
                         <span>{selectedJob.workMode || 'Not specified'}</span>
                       </div>
 
-                      <div className="flex items-center max-w-full overflow-x-auto">
-                        <IndianRupee size={18} className="mr-2 opacity-75 flex-shrink-0" />
+                      <div className="flex items-center">
+                        <IndianRupee size={18} className="mr-2 opacity-75" />
                         {typeof selectedJob.jobTypes === 'string' && selectedJob.jobTypes.toLowerCase().includes('intern') ? (
-                          <span className="whitespace-nowrap">
+                          <span>
                             Stipend:{' '}
                             {selectedJob.minSalary || selectedJob.maxSalary
                               ? `₹${selectedJob.minSalary || '—'} - ₹${selectedJob.maxSalary || '—'}/${selectedJob.salaryUnit?.toLowerCase() === 'monthly' ? 'month' : selectedJob.salaryUnit}`
@@ -627,7 +648,7 @@ case 'multiple-choice':
                                   : 'Not specified')}
                           </span>
                         ) : (
-                          <span className="whitespace-nowrap">
+                          <span>
                             CTC:{' '}
                             {selectedJob.minCtc || selectedJob.maxCtc
                               ? `₹${selectedJob.minCtc || '—'} - ₹${selectedJob.maxCtc || '—'}/${selectedJob.ctcUnit?.toLowerCase() === 'yearly' ? 'year' : selectedJob.ctcUnit}`
@@ -657,60 +678,56 @@ case 'multiple-choice':
           </div>
           
           {/* Action buttons */}
-          <div className="absolute bottom-0 right-0 transform translate-y-1/2 px-4 sm:px-8 flex gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-center sm:justify-end w-full sm:w-auto">
+          <div className="absolute bottom-0 right-0 transform translate-y-1/2 px-8 flex gap-3">
             <button
               onClick={() => setShowChatPanel(!showChatPanel)}
-              className="flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-white text-blue-700 rounded-lg hover:bg-gray-100 transition-colors shadow-md flex-1 sm:flex-none justify-center"
+              className="flex items-center gap-2 px-4 py-3 bg-white text-blue-700 rounded-lg hover:bg-gray-100 transition-colors shadow-md"
             >
-              <MessageSquare size={16} />
-              <span className="text-sm sm:text-base">Discussion</span>
+              <MessageSquare size={18} />
+              Discussion
             </button>
             
             {!isSaved && (
               <button
                 onClick={() => handleSaveJob(selectedJob.id)}
-                className="flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-white text-blue-700 rounded-lg hover:bg-gray-100 transition-colors shadow-md flex-1 sm:flex-none justify-center"
+                className="flex items-center gap-2 px-4 py-3 bg-white text-blue-700 rounded-lg hover:bg-gray-100 transition-colors shadow-md"
               >
-                <Save size={16} />
-                <span className="text-sm sm:text-base">Save Job</span>
+                <Save size={18} />
+                Save Job
               </button>
             )}
             
             {!isApplied && isEligible && (
               <button
                 onClick={() => {
-                  if (selectedJob?.screeningQuestions?.length > 0) {
-                    setActiveTab('apply');
-                  } else {
-                    handleApply(selectedJob.id);
+                  if (areAllMandatoryLinksVisited()) {
+                    if (selectedJob?.screeningQuestions?.length > 0) {
+                      setActiveTab('apply');
+                    } else {
+                      handleApply(selectedJob.id);
+                    }
                   }
                 }}
-                className="flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex-1 sm:flex-none justify-center"
-                disabled={selectedJob.bondRequired && !bondAgreed}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors shadow-md ${
+                  isEligible && areAllMandatoryLinksVisited()
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                }`}
+                disabled={!isEligible || !areAllMandatoryLinksVisited()} // Disable if not eligible or mandatory links not visited
               >
-                <Send size={16} />
-                <span className="text-sm sm:text-base">Apply Now</span>
+                <Send size={18} />
+                {isEligible && !areAllMandatoryLinksVisited() ? 'Visit Mandatory Links' : 'Apply Now'}
               </button>
             )}
             
             {isApplied && (
-              applicationStatuses[selectedJob.id] === 'withdrawn' ? (
-                <button
-                  disabled
-                  className="flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-red-100 text-red-800 rounded-lg cursor-not-allowed shadow-md flex-1 sm:flex-none justify-center"
-                >
-                  <CheckCircle size={16} />
-                  <span className="text-sm sm:text-base">Withdrawn</span>
-                </button>
-              ) : (
-                <button
-                  disabled
-                  className="flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-green-100 text-green-800 rounded-lg cursor-not-allowed shadow-md flex-1 sm:flex-none justify-center"
-                >
-                  <CheckCircle size={16} />
-                  <span className="text-sm sm:text-base">Applied</span>
-                </button>
-              )
+              <button
+                disabled
+                className="flex items-center gap-2 px-4 py-3 bg-green-100 text-green-800 rounded-lg cursor-not-allowed shadow-md"
+              >
+                <CheckCircle size={18} />
+                Applied
+              </button>
             )}
           </div>
         </div>
@@ -738,7 +755,7 @@ case 'multiple-choice':
         )}
         
         {/* Tab navigation */}
-        <div className="border-b border-gray-200 px-2 sm:px-6">
+        <div className="border-b border-gray-200 px-6">
           <nav className="flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('details')}
@@ -774,7 +791,7 @@ case 'multiple-choice':
         </div>
         
         {/* Tab content */}
-        <div className="p-4 sm:p-6">
+        <div className="p-6">
           {/* Job Details Tab */}
           {activeTab === 'details' && (
             <div className="space-y-8">
@@ -949,12 +966,6 @@ case 'multiple-choice':
                       }
                     </div>
                   </div>
-                  {selectedJob.bondRequired && (
-                    <div className="space-y-1 md:col-span-2">
-                      <p className="text-sm text-gray-500">Bond Details</p>
-                      <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: selectedJob.bondDetails }} />
-                    </div>
-                  )}
                   {selectedJob.skills && selectedJob.skills.length > 0 && studentProfile.skills && (
                     <div className="space-y-1 md:col-span-2">
                       <p className="text-sm text-gray-500">Your Skill Match</p>
@@ -1022,6 +1033,39 @@ case 'multiple-choice':
                   </div>
                 </div>
               )}
+
+               {/* External Resources */}
+               {selectedJob.externalLinks && selectedJob.externalLinks.length > 0 && (
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                    <LinkIcon size={20} className="mr-2 text-blue-600" />
+                    External Resources
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedJob.externalLinks.map((link, index) => (
+                      <div key={index} className="p-3 border border-gray-200 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center">
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => handleLinkClick(link.url, link.mandatoryBeforeApply)}
+                            className="text-blue-600 hover:underline font-medium flex items-center"
+                          >
+                            <LinkIcon size={16} className="mr-2" />
+                            {link.label || 'External Link'}
+                          </a>
+                        </div>
+                        {link.mandatoryBeforeApply && (
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${linkVisited[link.url] ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {linkVisited[link.url] ? 'Visited (Mandatory)' : 'Mandatory'}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1080,7 +1124,6 @@ case 'multiple-choice':
                 <button
                   onClick={() => handleApply(selectedJob.id)}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
-                  disabled={selectedJob.bondRequired && !bondAgreed}
                 >
                   <Send size={18} className="mr-2" />
                   Submit Application
@@ -1127,20 +1170,6 @@ case 'multiple-choice':
                   Application Status: <span className="font-medium ml-1">{applicationStatuses[selectedJob.id] || 'Pending'}</span>
                 </p>
               </div>
-
-              {selectedJob.bondRequired && (
-                <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={bondAgreed}
-                      onChange={e => setBondAgreed(e.target.checked)}
-                      className="mr-2 h-4 w-4 text-blue-600"
-                    />
-                    <span className="text-sm text-blue-800">I have read and agree to the bond terms for this job.</span>
-                  </label>
-                </div>
-              )}
             </div>
           )}
         </div>

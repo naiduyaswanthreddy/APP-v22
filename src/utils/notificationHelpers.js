@@ -18,6 +18,44 @@ export const createNotification = async (notificationData) => {
   }
 };
 
+// New sendSelectionNotification function
+export const sendSelectionNotification = async (studentId, jobId, jobPosition, companyName) => {
+  return createNotification({
+    title: 'Congratulations! You have been selected!',
+    message: `You have been selected for ${jobPosition} at ${companyName}. Please accept or reject your offer.`,
+    type: 'job_selection',
+    recipientId: studentId,
+    isGeneral: false,
+    recipientType: 'student',
+    actionLink: `/student/applications`,
+    jobId: jobId // Include jobId for context in student applications
+  });
+};
+
+export const sendOfferAcceptedNotification = async (studentId, jobPosition, companyName) => {
+  return createNotification({
+    title: 'Offer Accepted!',
+    message: `You have successfully accepted the offer for ${jobPosition} at ${companyName}. Congratulations on your placement!`,
+    type: 'offer_accepted',
+    recipientId: studentId,
+    isGeneral: false,
+    recipientType: 'student',
+    actionLink: '/student/applications'
+  });
+};
+
+export const sendOfferRejectedNotification = async (studentId, jobPosition, companyName) => {
+  return createNotification({
+    title: 'Offer Rejected',
+    message: `You have rejected the offer for ${jobPosition} at ${companyName}. You may continue applying for other opportunities.`,
+    type: 'offer_rejected',
+    recipientId: studentId,
+    isGeneral: false,
+    recipientType: 'student',
+    actionLink: '/student/applications'
+  });
+};
+
 // New createEventNotification function
 export const createEventNotification = async (studentId, title, message, actionLink = null) => {
   return createNotification({
